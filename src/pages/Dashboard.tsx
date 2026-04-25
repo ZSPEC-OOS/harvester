@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActionCard } from '../components/cards/ActionCard';
 import { ErrorBox } from '../components/cards/ErrorBox';
 import { OutputCard } from '../components/cards/OutputCard';
+import { ReferenceResultsCard } from '../components/cards/ReferenceResultsCard';
 import { SearchConfigCard } from '../components/cards/SearchConfigCard';
 import { SourceSelectionCard } from '../components/cards/SourceSelectionCard';
 import { ConsoleLog } from '../components/console/ConsoleLog';
@@ -10,7 +11,8 @@ import { TopBar } from '../components/layout/TopBar';
 import { CacheStats } from '../components/sidebar/CacheStats';
 
 type Settings = {
-  query: string;
+  topic: string;
+  referenceStyle: string;
   startYear: number;
   endYear: number;
   searchDepth: number;
@@ -23,33 +25,29 @@ type Settings = {
     pubmed: boolean;
     semantic: boolean;
   };
-  outputDir: string;
-  naming: string;
-  bibtex: boolean;
-  zotero: boolean;
+  externalAiEnabled: boolean;
+  externalApiUrl: string;
+  externalApiAttachment: string;
 };
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 const initialSettings: Settings = {
-  query: 'machine learning in genomics AND crispr cas9',
-  startYear: 2018,
+  topic: 'machine learning in genomics and CRISPR-Cas9 editing outcomes',
+  referenceStyle: 'apa',
+  startYear: 2000,
   endYear: CURRENT_YEAR,
-  searchDepth: 5,
+  searchDepth: 12,
   includePreprints: true,
-  excludePatents: false,
-  onlyOpenAccess: true,
-  sources: { crossref: true, scholar: true, pubmed: false, semantic: true },
-  outputDir: '/Users/research/papers/CRISPR_Genomics_2026',
-  naming: 'author-year-title',
-  bibtex: true,
-  zotero: true,
+  excludePatents: true,
+  onlyOpenAccess: false,
+  sources: { crossref: true, scholar: true, pubmed: true, semantic: true },
+  externalAiEnabled: false,
+  externalApiUrl: '',
+  externalApiAttachment: '',
 };
 
-const seedLines = [
-  '[10:32:15] Ready to start harvest',
-  '[10:32:28] Waiting for user action',
-];
+const seedLines = ['[10:32:15] DeepScholar ready', '[10:32:28] Waiting for user action'];
 
 const sourceWeights = {
   crossref: 1.25,
@@ -82,6 +80,43 @@ const toYaml = (value: unknown, depth = 0): string => {
   return `${yamlIndent(depth)}${String(value)}`;
 };
 
+const styleLabelMap: Record<string, string> = {
+  apa: 'APA',
+  mla: 'MLA',
+  chicago: 'Chicago',
+  vancouver: 'Vancouver',
+  'doi-only': 'DOI only',
+};
+
+const expandTopic = (topic: string) => {
+  const clean = topic.trim();
+  if (!clean) return '';
+  return [
+    `${clean} ; related terms: systematic review, meta-analysis, benchmark, survey`,
+    `subdomains: methods, datasets, evaluation protocols, translational studies`,
+    `synonyms: foundational models, representation learning, multimodal inference`,
+    `inclusion strategy: core papers, replications, negative results, preprints, and seminal historical work`,
+  ].join(' | ');
+};
+
+const buildMockReferences = (settings: Settings, expandedTopic: string, targetCount: number) => {
+  const count = Math.max(0, Math.min(targetCount, 2500));
+  const style = styleLabelMap[settings.referenceStyle] ?? settings.referenceStyle;
+
+  return Array.from({ length: count }, (_, i) => {
+    const year = settings.startYear + (i % (settings.endYear - settings.startYear + 1));
+    const title = `Comprehensive study #${i + 1} on ${expandedTopic.split('|')[0].trim()}`;
+    const journal = `Journal of DeepScholar Synthesis ${((i % 18) + 1).toString().padStart(2, '0')}`;
+    const doi = `10.${1200 + (i % 700)}/deep.${year}.${(i + 1).toString().padStart(5, '0')}`;
+
+    if (settings.referenceStyle === 'doi-only') {
+      return `${i + 1}. ${doi}`;
+    }
+
+    return `${i + 1}. [${style}] Rivera, A., Noor, K., & Patel, J. (${year}). ${title}. ${journal}. https://doi.org/${doi}`;
+  });
+};
+
 const getEstimate = (settings: Settings) => {
   const activeSources = Object.entries(settings.sources)
     .filter(([, enabled]) => enabled)
@@ -89,9 +124,9 @@ const getEstimate = (settings: Settings) => {
 
   const sourceScore = activeSources.reduce((sum, source) => sum + sourceWeights[source], 0);
   const yearSpan = Math.max(1, settings.endYear - settings.startYear + 1);
-  const queryWordCount = settings.query.trim().split(/\s+/).filter(Boolean).length;
+  const topicWordCount = settings.topic.trim().split(/\s+/).filter(Boolean).length;
 
-  let estimate = Math.round(sourceScore * settings.searchDepth * yearSpan * Math.max(1, queryWordCount * 1.2));
+  let estimate = Math.round(sourceScore * settings.searchDepth * yearSpan * Math.max(1, topicWordCount * 0.9));
 
   if (settings.onlyOpenAccess) estimate = Math.round(estimate * 0.58);
   if (!settings.includePreprints) estimate = Math.round(estimate * 0.9);
@@ -105,6 +140,8 @@ export function Dashboard() {
     const saved = localStorage.getItem('paper-harvester-settings');
     return saved ? { ...initialSettings, ...JSON.parse(saved) } : initialSettings;
   });
+  const [expandedTopic, setExpandedTopic] = useState('');
+  const [references, setReferences] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const [lines, setLines] = useState(seedLines);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -127,10 +164,11 @@ export function Dashboard() {
   }, []);
 
   const validationError = useMemo(() => {
-    if (!settings.query.trim()) return 'Search query is empty.';
+    if (!settings.topic.trim()) return 'Topic is empty.';
     if (settings.startYear > settings.endYear) return 'Start year is later than end year.';
-    if (!settings.outputDir.trim()) return 'Output directory is required.';
+    if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR) return `Year range must be between 1900 and ${CURRENT_YEAR}.`;
     if (!Object.values(settings.sources).some(Boolean)) return 'At least one source must be enabled.';
+    if (settings.externalAiEnabled && !settings.externalApiUrl.trim()) return 'External AI API URL is required when attachment mode is enabled.';
     return null;
   }, [settings]);
 
@@ -141,7 +179,7 @@ export function Dashboard() {
         timerRef.current = null;
       }
       setIsRunning(false);
-      setLines((prev) => [...prev, `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] Harvest cancelled by user`]);
+      setLines((prev) => [...prev, `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] Run cancelled by user`]);
       return;
     }
 
@@ -150,26 +188,37 @@ export function Dashboard() {
       return;
     }
 
+    const expanded = expandTopic(settings.topic);
+    setExpandedTopic(expanded);
+    setReferences([]);
+
     const events = [
-      `Running query: "${settings.query.trim()}"`,
-      `Selecting sources: ${Object.entries(settings.sources).filter(([, v]) => v).map(([k]) => k).join(', ')}`,
-      'Applying open-access filters',
-      `Preparing ${estimatedPapers.toLocaleString()} records for download`,
-      `Output directory confirmed: ${settings.outputDir}`,
-      'Harvest completed successfully',
+      `Expanding topic: "${settings.topic.trim()}"`,
+      `Using style: ${styleLabelMap[settings.referenceStyle] ?? settings.referenceStyle}`,
+      `Selecting sources: ${Object.entries(settings.sources)
+        .filter(([, v]) => v)
+        .map(([k]) => k)
+        .join(', ')}`,
+      settings.externalAiEnabled
+        ? `Calling external AI attachment at ${settings.externalApiUrl}`
+        : 'Using built-in DeepScholar expansion engine',
+      `Generating extensive list for year range ${settings.startYear}-${settings.endYear}`,
+      `Completed list with ${Math.min(estimatedPapers, 2500).toLocaleString()} references`,
     ];
 
     let i = 0;
     setIsRunning(true);
     setProgress(0);
-    setLines((prev) => [...prev, `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] Starting harvest`]);
+    setLines((prev) => [...prev, `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] Starting DeepScholar run`]);
 
     timerRef.current = window.setInterval(() => {
       setProgress((p) => {
         const next = Math.min(100, p + 17);
         if (next === 100) {
           setIsRunning(false);
-          setCacheCount((count) => count + Math.round(estimatedPapers * 0.2));
+          const generated = buildMockReferences(settings, expanded, estimatedPapers);
+          setReferences(generated);
+          setCacheCount((count) => count + Math.round(generated.length * 0.2));
           if (timerRef.current) {
             window.clearInterval(timerRef.current);
             timerRef.current = null;
@@ -187,12 +236,12 @@ export function Dashboard() {
   };
 
   const exportYaml = () => {
-    const yaml = toYaml(settings);
+    const yaml = toYaml({ ...settings, expandedTopic, generatedReferenceCount: references.length });
     const blob = new Blob([yaml], { type: 'text/yaml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'paper-harvester-config.yaml';
+    a.download = 'deepscholar-config.yaml';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -201,8 +250,10 @@ export function Dashboard() {
     () => (
       <div className="space-y-4">
         <SearchConfigCard
-          query={settings.query}
-          setQuery={(query) => setSettings((s) => ({ ...s, query }))}
+          topic={settings.topic}
+          setTopic={(topic) => setSettings((s) => ({ ...s, topic }))}
+          referenceStyle={settings.referenceStyle}
+          setReferenceStyle={(referenceStyle) => setSettings((s) => ({ ...s, referenceStyle }))}
           startYear={settings.startYear}
           setStartYear={(startYear) => setSettings((s) => ({ ...s, startYear }))}
           endYear={settings.endYear}
@@ -224,34 +275,39 @@ export function Dashboard() {
         />
 
         <OutputCard
-          outputDir={settings.outputDir}
-          setOutputDir={(outputDir) => setSettings((s) => ({ ...s, outputDir }))}
-          naming={settings.naming}
-          setNaming={(naming) => setSettings((s) => ({ ...s, naming }))}
-          bibtex={settings.bibtex}
-          setBibtex={(bibtex) => setSettings((s) => ({ ...s, bibtex }))}
-          zotero={settings.zotero}
-          setZotero={(zotero) => setSettings((s) => ({ ...s, zotero }))}
+          expandedTopic={expandedTopic}
+          externalAiEnabled={settings.externalAiEnabled}
+          setExternalAiEnabled={(externalAiEnabled) => setSettings((s) => ({ ...s, externalAiEnabled }))}
+          externalApiUrl={settings.externalApiUrl}
+          setExternalApiUrl={(externalApiUrl) => setSettings((s) => ({ ...s, externalApiUrl }))}
+          externalApiAttachment={settings.externalApiAttachment}
+          setExternalApiAttachment={(externalApiAttachment) => setSettings((s) => ({ ...s, externalApiAttachment }))}
         />
+
+        <ReferenceResultsCard references={references} referenceStyle={settings.referenceStyle} />
 
         {validationError && (
           <ErrorBox
             message={validationError}
             onFix={() => {
-              if (!settings.query.trim()) {
-                setSettings((s) => ({ ...s, query: initialSettings.query }));
+              if (!settings.topic.trim()) {
+                setSettings((s) => ({ ...s, topic: initialSettings.topic }));
                 return;
               }
               if (settings.startYear > settings.endYear) {
                 setSettings((s) => ({ ...s, endYear: s.startYear }));
                 return;
               }
-              if (!settings.outputDir.trim()) {
-                setSettings((s) => ({ ...s, outputDir: initialSettings.outputDir }));
+              if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR) {
+                setSettings((s) => ({ ...s, startYear: initialSettings.startYear, endYear: initialSettings.endYear }));
                 return;
               }
               if (!Object.values(settings.sources).some(Boolean)) {
                 setSettings((s) => ({ ...s, sources: { ...s.sources, crossref: true } }));
+                return;
+              }
+              if (settings.externalAiEnabled && !settings.externalApiUrl.trim()) {
+                setSettings((s) => ({ ...s, externalApiUrl: 'https://api.example.com/v1/references' }));
               }
             }}
           />
@@ -262,11 +318,11 @@ export function Dashboard() {
           estimatedPapers={estimatedPapers}
           disableRun={Boolean(validationError)}
           isRunning={isRunning}
-          onUseExampleQuery={() => setSettings((s) => ({ ...s, query: initialSettings.query }))}
+          onUseExampleQuery={() => setSettings((s) => ({ ...s, topic: initialSettings.topic }))}
         />
       </div>
     ),
-    [estimatedPapers, isRunning, settings, validationError],
+    [estimatedPapers, expandedTopic, isRunning, references, settings, validationError],
   );
 
   return (
@@ -294,7 +350,7 @@ export function Dashboard() {
             disabled={Boolean(validationError)}
             className="w-full rounded-xl border border-violet-300/40 bg-gradient-to-r from-violet-500/80 to-indigo-500/80 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isRunning ? 'STOP HARVEST' : 'RUN HARVEST'}
+            {isRunning ? 'STOP DEEPSCHOLAR' : 'RUN DEEPSCHOLAR'}
           </button>
           <button onClick={() => setSheetOpen((v) => !v)} className="mt-2 w-full text-center text-sm text-slate-300">
             {sheetOpen ? 'Hide' : 'Show'} Cache + Console
