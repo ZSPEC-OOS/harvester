@@ -1,12 +1,18 @@
 import { Pie, PieChart, ResponsiveContainer, Cell } from 'recharts';
 import { GlassCard } from '../ui/GlassCard';
 
-const data = [
-  { name: 'Cached', value: 1847, color: '#4ADE80' },
-  { name: 'New', value: 2103, color: '#3B82F6' },
-];
+type Props = {
+  cachedCount: number;
+  pendingCount: number;
+  onCleanOldCache: () => void;
+};
 
-export function CacheStats() {
+export function CacheStats({ cachedCount, pendingCount, onCleanOldCache }: Props) {
+  const data = [
+    { name: 'Cached', value: Math.max(0, cachedCount), color: '#4ADE80' },
+    { name: 'New', value: Math.max(0, pendingCount), color: '#3B82F6' },
+  ];
+
   return (
     <GlassCard className="p-4 sm:p-6">
       <h2 className="mb-3 text-2xl font-semibold text-white">CACHE STATISTICS</h2>
@@ -22,10 +28,15 @@ export function CacheStats() {
         </ResponsiveContainer>
       </div>
       <div className="space-y-2 text-slate-200">
-        <p>1,847 PDFs already downloaded</p>
-        <p>2,103 new to fetch</p>
+        <p>{cachedCount.toLocaleString()} PDFs already downloaded</p>
+        <p>{pendingCount.toLocaleString()} pending for this query</p>
       </div>
-      <button className="mt-4 w-full rounded-xl border border-sky-500 px-4 py-3 text-white">Clean cache older than 90 days</button>
+      <button
+        onClick={onCleanOldCache}
+        className="mt-4 w-full rounded-xl border border-sky-500 px-4 py-3 text-white"
+      >
+        Clean cache older than 90 days
+      </button>
     </GlassCard>
   );
 }
