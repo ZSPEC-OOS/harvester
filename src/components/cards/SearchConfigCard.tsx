@@ -4,8 +4,8 @@ import { GlassCard } from '../ui/GlassCard';
 import { Slider } from '../ui/Slider';
 
 type Props = {
-  query: string;
-  setQuery: (v: string) => void;
+  topic: string;
+  setTopic: (v: string) => void;
   startYear: number;
   setStartYear: (v: number) => void;
   endYear: number;
@@ -18,68 +18,81 @@ type Props = {
   setExcludePatents: (v: boolean) => void;
   onlyOpenAccess: boolean;
   setOnlyOpenAccess: (v: boolean) => void;
+  referenceStyle: string;
+  setReferenceStyle: (v: string) => void;
 };
 
 export function SearchConfigCard(props: Props) {
   return (
     <GlassCard className="border-blue-300/20 p-4 sm:p-6">
       <h2 className="mb-4 flex items-center gap-2 text-2xl font-semibold text-white sm:text-3xl">
-        STEP 1: BUILD SEARCH QUERY <Info size={18} className="text-slate-400" />
+        STEP 1: TOPIC + CITATION FORMAT <Info size={18} className="text-slate-400" />
       </h2>
 
       <label className="mb-3 block text-slate-300" htmlFor="topic">
-        Research Topic
+        Topic for DeepScholar
       </label>
       <input
         id="topic"
-        value={props.query}
-        onChange={(e) => props.setQuery(e.target.value)}
+        value={props.topic}
+        onChange={(e) => props.setTopic(e.target.value)}
         className="mb-4 w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
+        placeholder="e.g. foundation models for protein design"
       />
+
+      <label className="mb-3 block text-slate-300" htmlFor="reference-style">
+        Reference Style
+      </label>
+      <select
+        id="reference-style"
+        value={props.referenceStyle}
+        onChange={(e) => props.setReferenceStyle(e.target.value)}
+        className="mb-4 w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
+      >
+        <option value="apa">APA</option>
+        <option value="mla">MLA</option>
+        <option value="chicago">Chicago</option>
+        <option value="vancouver">Vancouver</option>
+        <option value="doi-only">DOI only</option>
+      </select>
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="text-slate-300">
-          <span className="sr-only">Start Year</span>
-          <select
+          <span className="mb-2 block">Start Year</span>
+          <input
+            type="number"
+            min={1900}
+            max={props.endYear}
             value={props.startYear}
             onChange={(e) => props.setStartYear(Number(e.target.value))}
             className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
-          >
-            {Array.from({ length: 13 }, (_, i) => 2013 + i).map((year) => (
-              <option key={year} value={year}>
-                Start Year: {year}
-              </option>
-            ))}
-          </select>
+          />
         </label>
 
         <label className="text-slate-300">
-          <span className="sr-only">End Year</span>
-          <select
+          <span className="mb-2 block">End Year</span>
+          <input
+            type="number"
+            min={props.startYear}
+            max={new Date().getFullYear()}
             value={props.endYear}
             onChange={(e) => props.setEndYear(Number(e.target.value))}
             className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
-          >
-            {Array.from({ length: 13 }, (_, i) => 2013 + i).map((year) => (
-              <option key={year} value={year}>
-                End Year: {year}
-              </option>
-            ))}
-          </select>
+          />
         </label>
       </div>
 
-      <p className="mb-2 text-lg text-slate-300">Search Depth: {props.searchDepth} Scholar Pages (~{props.searchDepth * 10} results)</p>
+      <p className="mb-2 text-lg text-slate-300">Search Breadth: {props.searchDepth} passes</p>
       <div className="mb-4 flex items-center gap-3 text-slate-300">
         <span>1</span>
-        <Slider id="depth" value={props.searchDepth} onChange={props.setSearchDepth} />
-        <span>10</span>
+        <Slider id="depth" value={props.searchDepth} onChange={props.setSearchDepth} min={1} max={20} />
+        <span>20</span>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Checkbox id="include-preprints" checked={props.includePreprints} onChange={props.setIncludePreprints} label="Include preprints" />
         <Checkbox id="exclude-patents" checked={props.excludePatents} onChange={props.setExcludePatents} label="Exclude patents" />
-        <Checkbox id="only-oa" checked={props.onlyOpenAccess} onChange={props.setOnlyOpenAccess} label="Only open access when available" />
+        <Checkbox id="only-oa" checked={props.onlyOpenAccess} onChange={props.setOnlyOpenAccess} label="Prefer open access" />
       </div>
     </GlassCard>
   );

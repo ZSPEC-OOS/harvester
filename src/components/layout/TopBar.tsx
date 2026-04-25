@@ -10,8 +10,8 @@ export function TopBar() {
             <Download size={12} className="absolute -bottom-1 -right-1 rounded-full bg-violet-500 p-0.5 text-white" />
           </div>
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Open-source · self-hostable</p>
-            <h1 className="text-xl font-semibold text-white sm:text-3xl">Paper Harvester</h1>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Reference intelligence · AI-assisted</p>
+            <h1 className="text-xl font-semibold text-white sm:text-3xl">DeepScholar</h1>
           </div>
         </div>
 
