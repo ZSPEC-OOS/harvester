@@ -270,7 +270,7 @@ export function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-bg text-white">
+    <div className="min-h-screen bg-transparent text-white">
       <TopBar />
       <Container>
         <div className="relative grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,800px)_340px] xl:items-start">
@@ -288,11 +288,11 @@ export function Dashboard() {
           <ConsoleLog lines={lines} progress={progress} />
         </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/90 p-3 backdrop-blur xl:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#060913]/90 p-3 backdrop-blur-xl xl:hidden">
           <button
             onClick={runHarvest}
             disabled={Boolean(validationError)}
-            className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-xl border border-violet-300/40 bg-gradient-to-r from-violet-500/80 to-indigo-500/80 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isRunning ? 'STOP HARVEST' : 'RUN HARVEST'}
           </button>
@@ -302,7 +302,7 @@ export function Dashboard() {
         </div>
 
         <div
-          className={`fixed inset-x-0 bottom-20 z-30 max-h-[70vh] overflow-auto rounded-t-2xl border border-white/10 bg-slate-950/95 p-3 transition-transform xl:hidden ${sheetOpen ? 'translate-y-0' : 'translate-y-[110%]'}`}
+          className={`fixed inset-x-0 bottom-20 z-30 max-h-[70vh] overflow-auto rounded-t-2xl border border-white/10 bg-[#060913]/95 p-3 transition-transform xl:hidden ${sheetOpen ? 'translate-y-0' : 'translate-y-[110%]'}`}
         >
           <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-slate-600" />
           <div className="space-y-3">

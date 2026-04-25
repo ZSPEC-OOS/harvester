@@ -10,13 +10,13 @@
 
 body {
   @apply m-0 min-h-screen bg-bg font-sans text-white antialiased;
+  background-color: #05070d;
   background-image:
-    radial-gradient(circle at 30% 10%, rgba(34, 211, 238, 0.16), transparent 35%),
-    radial-gradient(circle at 75% 15%, rgba(139, 92, 246, 0.14), transparent 40%),
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: auto, auto, 28px 28px, 28px 28px;
-  animation: pulseGlow 8s ease-in-out infinite;
+    radial-gradient(circle at 15% -5%, rgba(186, 126, 255, 0.2), transparent 35%),
+    radial-gradient(circle at 85% 0%, rgba(123, 207, 255, 0.14), transparent 30%),
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: auto, auto, 34px 34px, 34px 34px;
 }
 
 * {
