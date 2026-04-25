@@ -11,9 +11,10 @@ type Sources = {
 type Props = {
   sources: Sources;
   setSources: (sources: Sources) => void;
+  estimatedPapers: number;
 };
 
-export function SourceSelectionCard({ sources, setSources }: Props) {
+export function SourceSelectionCard({ sources, setSources, estimatedPapers }: Props) {
   const set = (key: keyof Sources, value: boolean) => setSources({ ...sources, [key]: value });
 
   const activeCount = Object.values(sources).filter(Boolean).length;
@@ -27,7 +28,9 @@ export function SourceSelectionCard({ sources, setSources }: Props) {
         <Toggle id="src-pubmed" checked={sources.pubmed} onChange={(v) => set('pubmed', v)} label="PubMed" />
         <Toggle id="src-semantic" checked={sources.semantic} onChange={(v) => set('semantic', v)} label="Semantic Scholar" />
       </div>
-      <p className="mt-4 text-lg text-slate-400">Using {activeCount} sources — estimated 2,400 papers found globally</p>
+      <p className="mt-4 text-lg text-slate-400">
+        Using {activeCount} source{activeCount === 1 ? '' : 's'} — estimated {estimatedPapers.toLocaleString()} papers
+      </p>
     </GlassCard>
   );
 }
