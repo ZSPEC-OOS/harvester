@@ -6,6 +6,7 @@ import { ReferenceResultsCard } from '../components/cards/ReferenceResultsCard';
 import { SearchConfigCard } from '../components/cards/SearchConfigCard';
 import { SourceSelectionCard } from '../components/cards/SourceSelectionCard';
 import { ConsoleLog } from '../components/console/ConsoleLog';
+import { GlassCard } from '../components/ui/GlassCard';
 import { Container } from '../components/layout/Container';
 import { TopBar } from '../components/layout/TopBar';
 import { CacheStats } from '../components/sidebar/CacheStats';
@@ -48,6 +49,22 @@ const initialSettings: Settings = {
 };
 
 const seedLines = ['[10:32:15] DeepScholar ready', '[10:32:28] Waiting for user action'];
+
+const deepResearchProcess = [
+  'Clarify the objective and define hard constraints (scope, years, source quality, and output style).',
+  'Decompose the prompt into sub-questions and map each one to best-fit sources.',
+  'Run broad discovery first, then refine with targeted follow-up search passes.',
+  'Triangulate facts across independent sources and prioritize primary evidence.',
+  'Synthesize findings, track confidence, then export references and audit trail.',
+];
+
+const deepResearchTactics = [
+  'Use query ladders: broad terms → domain synonyms → exact entities.',
+  'Pivot search terms from high-signal papers (authors, datasets, methods, benchmarks).',
+  'Apply contrastive queries (supporting vs contradictory evidence) to reduce bias.',
+  'Use time-windowed passes to separate foundational work from the newest updates.',
+  'Score and rerank by source authority, citation velocity, reproducibility signals, and recency.',
+];
 
 const sourceWeights = {
   crossref: 1.25,
@@ -145,6 +162,7 @@ export function Dashboard() {
   const [progress, setProgress] = useState(0);
   const [lines, setLines] = useState(seedLines);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [cacheCount, setCacheCount] = useState(1847);
   const timerRef = useRef<number | null>(null);
@@ -193,12 +211,15 @@ export function Dashboard() {
     setReferences([]);
 
     const events = [
+      'Running Deep Research process: objective → decomposition → broad pass → targeted pass → synthesis',
       `Expanding topic: "${settings.topic.trim()}"`,
+      'Applying search tactics: query ladders, synonym pivots, contrastive evidence checks',
       `Using style: ${styleLabelMap[settings.referenceStyle] ?? settings.referenceStyle}`,
       `Selecting sources: ${Object.entries(settings.sources)
         .filter(([, v]) => v)
         .map(([k]) => k)
         .join(', ')}`,
+      'Cross-validating high-impact claims across multiple source indexes',
       settings.externalAiEnabled
         ? `Calling external AI attachment at ${settings.externalApiUrl}`
         : 'Using built-in DeepScholar expansion engine',
@@ -249,40 +270,44 @@ export function Dashboard() {
   const cards = useMemo(
     () => (
       <div className="space-y-4">
-        <SearchConfigCard
-          topic={settings.topic}
-          setTopic={(topic) => setSettings((s) => ({ ...s, topic }))}
-          referenceStyle={settings.referenceStyle}
-          setReferenceStyle={(referenceStyle) => setSettings((s) => ({ ...s, referenceStyle }))}
-          startYear={settings.startYear}
-          setStartYear={(startYear) => setSettings((s) => ({ ...s, startYear }))}
-          endYear={settings.endYear}
-          setEndYear={(endYear) => setSettings((s) => ({ ...s, endYear }))}
-          searchDepth={settings.searchDepth}
-          setSearchDepth={(searchDepth) => setSettings((s) => ({ ...s, searchDepth }))}
-          includePreprints={settings.includePreprints}
-          setIncludePreprints={(includePreprints) => setSettings((s) => ({ ...s, includePreprints }))}
-          excludePatents={settings.excludePatents}
-          setExcludePatents={(excludePatents) => setSettings((s) => ({ ...s, excludePatents }))}
-          onlyOpenAccess={settings.onlyOpenAccess}
-          setOnlyOpenAccess={(onlyOpenAccess) => setSettings((s) => ({ ...s, onlyOpenAccess }))}
-        />
+        <GlassCard className="p-4 sm:p-6">
+          <h2 className="mb-3 text-xl font-semibold text-white sm:text-2xl">Search focus</h2>
+          <label className="mb-2 block text-sm text-slate-300" htmlFor="main-topic">
+            Topic
+          </label>
+          <input
+            id="main-topic"
+            value={settings.topic}
+            onChange={(e) => setSettings((s) => ({ ...s, topic: e.target.value }))}
+            className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
+            placeholder="e.g. foundation models for protein design"
+          />
+          <p className="mt-3 text-sm text-slate-400">
+            Keeping the interface focused: all advanced options moved into the top-left settings menu.
+          </p>
+        </GlassCard>
 
-        <SourceSelectionCard
-          sources={settings.sources}
-          setSources={(sources) => setSettings((s) => ({ ...s, sources }))}
-          estimatedPapers={estimatedPapers}
-        />
-
-        <OutputCard
-          expandedTopic={expandedTopic}
-          externalAiEnabled={settings.externalAiEnabled}
-          setExternalAiEnabled={(externalAiEnabled) => setSettings((s) => ({ ...s, externalAiEnabled }))}
-          externalApiUrl={settings.externalApiUrl}
-          setExternalApiUrl={(externalApiUrl) => setSettings((s) => ({ ...s, externalApiUrl }))}
-          externalApiAttachment={settings.externalApiAttachment}
-          setExternalApiAttachment={(externalApiAttachment) => setSettings((s) => ({ ...s, externalApiAttachment }))}
-        />
+        <GlassCard className="p-4 sm:p-6">
+          <h2 className="mb-3 text-xl font-semibold text-white sm:text-2xl">Deep Research process + tactics</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-violet-300">Process</p>
+              <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-200">
+                {deepResearchProcess.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ol>
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-cyan-300">Search tactics</p>
+              <ul className="list-disc space-y-2 pl-5 text-sm text-slate-200">
+                {deepResearchTactics.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </GlassCard>
 
         <ReferenceResultsCard references={references} referenceStyle={settings.referenceStyle} />
 
@@ -327,7 +352,7 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-transparent text-white">
-      <TopBar />
+      <TopBar onMenuClick={() => setSettingsMenuOpen(true)} />
       <Container>
         <div className="relative grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,800px)_340px] xl:items-start">
           {cards}
@@ -370,6 +395,57 @@ export function Dashboard() {
             <ConsoleLog lines={lines} progress={progress} mobile />
           </div>
         </div>
+
+        {settingsMenuOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
+            <div className="absolute left-0 top-0 h-full w-full max-w-xl overflow-y-auto border-r border-white/10 bg-[#060913] p-4 sm:p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white">Settings</h2>
+                <button
+                  type="button"
+                  onClick={() => setSettingsMenuOpen(false)}
+                  className="rounded-lg border border-white/20 bg-white/5 px-3 py-1 text-sm text-white"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="space-y-4 pb-8">
+                <SearchConfigCard
+                  topic={settings.topic}
+                  setTopic={(topic) => setSettings((s) => ({ ...s, topic }))}
+                  referenceStyle={settings.referenceStyle}
+                  setReferenceStyle={(referenceStyle) => setSettings((s) => ({ ...s, referenceStyle }))}
+                  startYear={settings.startYear}
+                  setStartYear={(startYear) => setSettings((s) => ({ ...s, startYear }))}
+                  endYear={settings.endYear}
+                  setEndYear={(endYear) => setSettings((s) => ({ ...s, endYear }))}
+                  searchDepth={settings.searchDepth}
+                  setSearchDepth={(searchDepth) => setSettings((s) => ({ ...s, searchDepth }))}
+                  includePreprints={settings.includePreprints}
+                  setIncludePreprints={(includePreprints) => setSettings((s) => ({ ...s, includePreprints }))}
+                  excludePatents={settings.excludePatents}
+                  setExcludePatents={(excludePatents) => setSettings((s) => ({ ...s, excludePatents }))}
+                  onlyOpenAccess={settings.onlyOpenAccess}
+                  setOnlyOpenAccess={(onlyOpenAccess) => setSettings((s) => ({ ...s, onlyOpenAccess }))}
+                />
+                <SourceSelectionCard
+                  sources={settings.sources}
+                  setSources={(sources) => setSettings((s) => ({ ...s, sources }))}
+                  estimatedPapers={estimatedPapers}
+                />
+                <OutputCard
+                  expandedTopic={expandedTopic}
+                  externalAiEnabled={settings.externalAiEnabled}
+                  setExternalAiEnabled={(externalAiEnabled) => setSettings((s) => ({ ...s, externalAiEnabled }))}
+                  externalApiUrl={settings.externalApiUrl}
+                  setExternalApiUrl={(externalApiUrl) => setSettings((s) => ({ ...s, externalApiUrl }))}
+                  externalApiAttachment={settings.externalApiAttachment}
+                  setExternalApiAttachment={(externalApiAttachment) => setSettings((s) => ({ ...s, externalApiAttachment }))}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </Container>
     </div>
   );
