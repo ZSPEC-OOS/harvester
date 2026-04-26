@@ -34,7 +34,7 @@ type Settings = {
 const CURRENT_YEAR = new Date().getFullYear();
 
 const initialSettings: Settings = {
-  topic: 'machine learning in genomics and CRISPR-Cas9 editing outcomes',
+  topic: '',
   referenceStyle: 'apa',
   startYear: 2000,
   endYear: CURRENT_YEAR,
@@ -51,19 +51,11 @@ const initialSettings: Settings = {
 const seedLines = ['[10:32:15] DeepScholar ready', '[10:32:28] Waiting for user action'];
 
 const deepResearchProcess = [
-  'Clarify the objective and define hard constraints (scope, years, source quality, and output style).',
-  'Decompose the prompt into sub-questions and map each one to best-fit sources.',
-  'Run broad discovery first, then refine with targeted follow-up search passes.',
-  'Triangulate facts across independent sources and prioritize primary evidence.',
-  'Synthesize findings, track confidence, then export references and audit trail.',
-];
-
-const deepResearchTactics = [
-  'Use query ladders: broad terms → domain synonyms → exact entities.',
-  'Pivot search terms from high-signal papers (authors, datasets, methods, benchmarks).',
-  'Apply contrastive queries (supporting vs contradictory evidence) to reduce bias.',
-  'Use time-windowed passes to separate foundational work from the newest updates.',
-  'Score and rerank by source authority, citation velocity, reproducibility signals, and recency.',
+  'Clarify objective and constraints',
+  'Decompose topic into focused sub-questions',
+  'Run broad discovery across enabled sources',
+  'Refine and cross-validate high-signal evidence',
+  'Synthesize, format, and stream references',
 ];
 
 const sourceWeights = {
@@ -72,30 +64,6 @@ const sourceWeights = {
   pubmed: 1.15,
   semantic: 1.2,
 } as const;
-
-const yamlIndent = (depth: number) => '  '.repeat(depth);
-
-const toYaml = (value: unknown, depth = 0): string => {
-  if (Array.isArray(value)) {
-    return value
-      .map((entry) => `${yamlIndent(depth)}- ${typeof entry === 'object' ? `\n${toYaml(entry, depth + 1)}` : String(entry)}`)
-      .join('\n');
-  }
-
-  if (value && typeof value === 'object') {
-    return Object.entries(value)
-      .map(([key, entry]) => {
-        if (entry && typeof entry === 'object') {
-          return `${yamlIndent(depth)}${key}:\n${toYaml(entry, depth + 1)}`;
-        }
-
-        return `${yamlIndent(depth)}${key}: ${String(entry)}`;
-      })
-      .join('\n');
-  }
-
-  return `${yamlIndent(depth)}${String(value)}`;
-};
 
 const styleLabelMap: Record<string, string> = {
   apa: 'APA',
@@ -109,11 +77,11 @@ const expandTopic = (topic: string) => {
   const clean = topic.trim();
   if (!clean) return '';
   return [
-    `${clean} ; related terms: systematic review, meta-analysis, benchmark, survey`,
-    `subdomains: methods, datasets, evaluation protocols, translational studies`,
-    `synonyms: foundational models, representation learning, multimodal inference`,
-    `inclusion strategy: core papers, replications, negative results, preprints, and seminal historical work`,
-  ].join(' | ');
+    `Primary objective: Build a comprehensive deep-research map for "${clean}" that captures foundational work, current methods, real-world outcomes, and known limitations.`,
+    'Scope expansion: include adjacent terminology, canonical synonyms, benchmark datasets, dominant methodological families, dissenting findings, and practical deployment constraints.',
+    'Evidence strategy: prioritize primary literature, rigorous evaluations, replication studies, and the strongest comparative analyses across multiple independent sources.',
+    'Output intent: produce a references-ready narrative that links key claims to evidence tiers, highlights consensus vs uncertainty, and surfaces actionable follow-up questions.',
+  ].join('\n\n');
 };
 
 const buildMockReferences = (settings: Settings, expandedTopic: string, targetCount: number) => {
@@ -122,7 +90,8 @@ const buildMockReferences = (settings: Settings, expandedTopic: string, targetCo
 
   return Array.from({ length: count }, (_, i) => {
     const year = settings.startYear + (i % (settings.endYear - settings.startYear + 1));
-    const title = `Comprehensive study #${i + 1} on ${expandedTopic.split('|')[0].trim()}`;
+    const topicLead = expandedTopic.split('\n')[0].replace('Primary objective: ', '');
+    const title = `Comprehensive study #${i + 1} on ${topicLead}`;
     const journal = `Journal of DeepScholar Synthesis ${((i % 18) + 1).toString().padStart(2, '0')}`;
     const doi = `10.${1200 + (i % 700)}/deep.${year}.${(i + 1).toString().padStart(5, '0')}`;
 
@@ -155,16 +124,17 @@ const getEstimate = (settings: Settings) => {
 export function Dashboard() {
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('paper-harvester-settings');
-    return saved ? { ...initialSettings, ...JSON.parse(saved) } : initialSettings;
+    return saved ? { ...initialSettings, ...JSON.parse(saved), topic: '' } : initialSettings;
   });
   const [expandedTopic, setExpandedTopic] = useState('');
+  const [expandedTopicDraft, setExpandedTopicDraft] = useState('');
+  const [expansionAccepted, setExpansionAccepted] = useState(false);
   const [references, setReferences] = useState<string[]>([]);
-  const [progress, setProgress] = useState(0);
   const [lines, setLines] = useState(seedLines);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [cacheCount, setCacheCount] = useState(1847);
+  const [activeStep, setActiveStep] = useState(0);
   const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -182,13 +152,22 @@ export function Dashboard() {
   }, []);
 
   const validationError = useMemo(() => {
-    if (!settings.topic.trim()) return 'Topic is empty.';
+    if (!settings.topic.trim()) return 'Search Focus Topic is required.';
+    if (!expandedTopic.trim() || !expansionAccepted) return 'Please process expansion and click Accept before running.';
     if (settings.startYear > settings.endYear) return 'Start year is later than end year.';
     if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR) return `Year range must be between 1900 and ${CURRENT_YEAR}.`;
     if (!Object.values(settings.sources).some(Boolean)) return 'At least one source must be enabled.';
     if (settings.externalAiEnabled && !settings.externalApiUrl.trim()) return 'External AI API URL is required when attachment mode is enabled.';
     return null;
-  }, [settings]);
+  }, [expandedTopic, expansionAccepted, settings]);
+
+  const processExpansion = () => {
+    const next = expandTopic(settings.topic);
+    setExpandedTopic(next);
+    setExpandedTopicDraft(next);
+    setExpansionAccepted(false);
+    setLines((prev) => [...prev, `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] Expansion generated for search focus topic`]);
+  };
 
   const runHarvest = () => {
     if (isRunning) {
@@ -206,63 +185,79 @@ export function Dashboard() {
       return;
     }
 
-    const expanded = expandTopic(settings.topic);
-    setExpandedTopic(expanded);
+    const finalExpandedTopic = expandedTopicDraft.trim() || expandedTopic;
+    setExpandedTopic(finalExpandedTopic);
     setReferences([]);
+    setActiveStep(0);
 
     const events = [
-      'Running Deep Research process: objective → decomposition → broad pass → targeted pass → synthesis',
-      `Expanding topic: "${settings.topic.trim()}"`,
-      'Applying search tactics: query ladders, synonym pivots, contrastive evidence checks',
+      'Running deep research flow',
+      `Expanded focus accepted for: "${settings.topic.trim()}"`,
       `Using style: ${styleLabelMap[settings.referenceStyle] ?? settings.referenceStyle}`,
       `Selecting sources: ${Object.entries(settings.sources)
         .filter(([, v]) => v)
         .map(([k]) => k)
         .join(', ')}`,
-      'Cross-validating high-impact claims across multiple source indexes',
-      settings.externalAiEnabled
-        ? `Calling external AI attachment at ${settings.externalApiUrl}`
-        : 'Using built-in DeepScholar expansion engine',
-      `Generating extensive list for year range ${settings.startYear}-${settings.endYear}`,
-      `Completed list with ${Math.min(estimatedPapers, 2500).toLocaleString()} references`,
+      `Streaming references for year range ${settings.startYear}-${settings.endYear}`,
     ];
 
-    let i = 0;
+    const generated = buildMockReferences(settings, finalExpandedTopic, estimatedPapers);
+    let idx = 0;
+    let eventIdx = 0;
+
     setIsRunning(true);
-    setProgress(0);
     setLines((prev) => [...prev, `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] Starting DeepScholar run`]);
 
     timerRef.current = window.setInterval(() => {
-      setProgress((p) => {
-        const next = Math.min(100, p + 17);
-        if (next === 100) {
-          setIsRunning(false);
-          const generated = buildMockReferences(settings, expanded, estimatedPapers);
-          setReferences(generated);
-          setCacheCount((count) => count + Math.round(generated.length * 0.2));
-          if (timerRef.current) {
-            window.clearInterval(timerRef.current);
-            timerRef.current = null;
-          }
-        }
-        return next;
-      });
-
-      if (i < events.length) {
-        const stamp = new Date().toLocaleTimeString('en-US', { hour12: false });
-        setLines((prev) => [...prev, `[${stamp}] ${events[i]}`]);
-        i += 1;
+      const chunkSize = 12;
+      const chunk = generated.slice(idx, idx + chunkSize);
+      if (chunk.length > 0) {
+        setReferences((prev) => [...prev, ...chunk]);
+        idx += chunk.length;
       }
-    }, 700);
+
+      const step = Math.min(deepResearchProcess.length - 1, Math.floor((idx / Math.max(generated.length, 1)) * deepResearchProcess.length));
+      setActiveStep(step);
+
+      if (eventIdx < events.length) {
+        const stamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+        setLines((prev) => [...prev, `[${stamp}] ${events[eventIdx]}`]);
+        eventIdx += 1;
+      }
+
+      if (idx >= generated.length) {
+        setIsRunning(false);
+        setActiveStep(deepResearchProcess.length - 1);
+        setLines((prev) => [
+          ...prev,
+          `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] Completed list with ${generated.length.toLocaleString()} references`,
+        ]);
+        if (timerRef.current) {
+          window.clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      }
+    }, 350);
   };
 
-  const exportYaml = () => {
-    const yaml = toYaml({ ...settings, expandedTopic, generatedReferenceCount: references.length });
-    const blob = new Blob([yaml], { type: 'text/yaml' });
+  const exportText = () => {
+    const payload = [
+      `Topic: ${settings.topic}`,
+      '',
+      'Expanded Topic:',
+      expandedTopicDraft || expandedTopic,
+      '',
+      `Reference style: ${settings.referenceStyle}`,
+      `Generated references: ${references.length}`,
+      '',
+      ...references,
+    ].join('\n');
+
+    const blob = new Blob([payload], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'deepscholar-config.yaml';
+    a.download = 'deepscholar-export.txt';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -270,53 +265,98 @@ export function Dashboard() {
   const cards = useMemo(
     () => (
       <div className="space-y-4">
-        <GlassCard className="p-4 sm:p-6">
-          <h2 className="mb-3 text-xl font-semibold text-white sm:text-2xl">Search focus</h2>
+        <GlassCard className="p-5">
+          <h2 className="mb-3 text-lg font-semibold text-white">Search Focus</h2>
           <label className="mb-2 block text-sm text-slate-300" htmlFor="main-topic">
-            Topic
+            Search Focus Topic
           </label>
           <input
             id="main-topic"
             value={settings.topic}
-            onChange={(e) => setSettings((s) => ({ ...s, topic: e.target.value }))}
-            className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
-            placeholder="e.g. foundation models for protein design"
+            onChange={(e) => {
+              const topic = e.target.value;
+              setSettings((s) => ({ ...s, topic }));
+              setExpandedTopic('');
+              setExpandedTopicDraft('');
+              setExpansionAccepted(false);
+            }}
+            className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-sm text-white"
+            placeholder="Enter your topic"
           />
-          <p className="mt-3 text-sm text-slate-400">
-            Keeping the interface focused: all advanced options moved into the top-left settings menu.
-          </p>
+          <button
+            type="button"
+            onClick={processExpansion}
+            disabled={!settings.topic.trim()}
+            className="mt-3 rounded-lg border border-cyan-300/50 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Process Expansion
+          </button>
+
+          {expandedTopic && (
+            <div className="mt-4 space-y-3">
+              <label className="block text-sm text-slate-300">Expanded Topic</label>
+              <textarea
+                value={expandedTopic}
+                readOnly
+                className="min-h-[130px] w-full rounded-lg border border-white/20 bg-slate-950/60 px-4 py-3 text-sm text-slate-100"
+              />
+              <label className="block text-sm text-slate-300">Refinement</label>
+              <textarea
+                value={expandedTopicDraft}
+                onChange={(e) => {
+                  setExpandedTopicDraft(e.target.value);
+                  setExpansionAccepted(false);
+                }}
+                className="min-h-[130px] w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-sm text-slate-100"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setExpandedTopic(expandedTopicDraft.trim() || expandedTopic);
+                  setExpansionAccepted(true);
+                }}
+                className="rounded-lg border border-emerald-300/50 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200"
+              >
+                Accept
+              </button>
+            </div>
+          )}
         </GlassCard>
 
-        <GlassCard className="p-4 sm:p-6">
-          <h2 className="mb-3 text-xl font-semibold text-white sm:text-2xl">Deep Research process + tactics</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-violet-300">Process</p>
-              <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-200">
-                {deepResearchProcess.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ol>
-            </div>
-            <div>
-              <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-cyan-300">Search tactics</p>
-              <ul className="list-disc space-y-2 pl-5 text-sm text-slate-200">
-                {deepResearchTactics.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
+        <GlassCard className="p-5">
+          <h2 className="mb-3 text-lg font-semibold text-white">Deep Research Process</h2>
+          <div className="space-y-2">
+            {deepResearchProcess.map((item, i) => {
+              const isActive = isRunning && i === activeStep;
+              const isDone = !isRunning && references.length > 0 && i <= activeStep;
+              return (
+                <div
+                  key={item}
+                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm ${isActive ? 'border-cyan-300/60 bg-cyan-500/10' : 'border-white/10 bg-white/5'}`}
+                >
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${isActive ? 'animate-pulse bg-cyan-300' : isDone ? 'bg-emerald-300' : 'bg-slate-500'}`}
+                  />
+                  <span className="text-slate-100">{item}</span>
+                </div>
+              );
+            })}
           </div>
         </GlassCard>
 
-        <ReferenceResultsCard references={references} referenceStyle={settings.referenceStyle} />
+        <ReferenceResultsCard references={references} referenceStyle={settings.referenceStyle} isRunning={isRunning} />
 
         {validationError && (
           <ErrorBox
             message={validationError}
             onFix={() => {
-              if (!settings.topic.trim()) {
-                setSettings((s) => ({ ...s, topic: initialSettings.topic }));
+              if (!settings.topic.trim()) return;
+              if (!expandedTopic.trim()) {
+                processExpansion();
+                return;
+              }
+              if (!expansionAccepted) {
+                setExpansionAccepted(true);
                 return;
               }
               if (settings.startYear > settings.endYear) {
@@ -339,15 +379,14 @@ export function Dashboard() {
         )}
         <ActionCard
           onRun={runHarvest}
-          onExportYaml={exportYaml}
+          onExportText={exportText}
           estimatedPapers={estimatedPapers}
           disableRun={Boolean(validationError)}
           isRunning={isRunning}
-          onUseExampleQuery={() => setSettings((s) => ({ ...s, topic: initialSettings.topic }))}
         />
       </div>
     ),
-    [estimatedPapers, expandedTopic, isRunning, references, settings, validationError],
+    [estimatedPapers, expandedTopic, expandedTopicDraft, expansionAccepted, isRunning, references, settings, validationError],
   );
 
   return (
@@ -357,28 +396,24 @@ export function Dashboard() {
         <div className="relative grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,800px)_340px] xl:items-start">
           {cards}
           <aside className="hidden xl:sticky xl:top-24 xl:block">
-            <CacheStats
-              cachedCount={cacheCount}
-              pendingCount={estimatedPapers}
-              onCleanOldCache={() => setCacheCount((count) => Math.max(0, count - 300))}
-            />
+            <CacheStats gatheredCount={references.length} targetCount={estimatedPapers} />
           </aside>
         </div>
 
         <div className="mt-4 hidden xl:block">
-          <ConsoleLog lines={lines} progress={progress} />
+          <ConsoleLog lines={lines} />
         </div>
 
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#060913]/90 p-3 backdrop-blur-xl xl:hidden">
           <button
             onClick={runHarvest}
             disabled={Boolean(validationError)}
-            className="w-full rounded-xl border border-violet-300/40 bg-gradient-to-r from-violet-500/80 to-indigo-500/80 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-xl border border-violet-300/40 bg-gradient-to-r from-violet-500/80 to-indigo-500/80 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isRunning ? 'STOP DEEPSCHOLAR' : 'RUN DEEPSCHOLAR'}
+            {isRunning ? 'Stop DeepScholar' : 'Run DeepScholar'}
           </button>
           <button onClick={() => setSheetOpen((v) => !v)} className="mt-2 w-full text-center text-sm text-slate-300">
-            {sheetOpen ? 'Hide' : 'Show'} Cache + Console
+            {sheetOpen ? 'Hide' : 'Show'} Progress + Log
           </button>
         </div>
 
@@ -387,12 +422,8 @@ export function Dashboard() {
         >
           <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-slate-600" />
           <div className="space-y-3">
-            <CacheStats
-              cachedCount={cacheCount}
-              pendingCount={estimatedPapers}
-              onCleanOldCache={() => setCacheCount((count) => Math.max(0, count - 300))}
-            />
-            <ConsoleLog lines={lines} progress={progress} mobile />
+            <CacheStats gatheredCount={references.length} targetCount={estimatedPapers} />
+            <ConsoleLog lines={lines} />
           </div>
         </div>
 
@@ -400,7 +431,7 @@ export function Dashboard() {
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
             <div className="absolute left-0 top-0 h-full w-full max-w-xl overflow-y-auto border-r border-white/10 bg-[#060913] p-4 sm:p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white">Settings</h2>
+                <h2 className="text-lg font-semibold text-white">Settings</h2>
                 <button
                   type="button"
                   onClick={() => setSettingsMenuOpen(false)}
