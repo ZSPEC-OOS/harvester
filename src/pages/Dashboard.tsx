@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActionCard } from '../components/cards/ActionCard';
+import { ApiConfigCard, type ApiConfig } from '../components/cards/ApiConfigCard';
 import { ErrorBox } from '../components/cards/ErrorBox';
 import { OutputCard } from '../components/cards/OutputCard';
 import { ReferenceResultsCard } from '../components/cards/ReferenceResultsCard';
@@ -27,8 +28,7 @@ type Settings = {
     semantic: boolean;
   };
   externalAiEnabled: boolean;
-  externalApiUrl: string;
-  externalApiAttachment: string;
+  apiConfig: ApiConfig;
 };
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -44,8 +44,7 @@ const initialSettings: Settings = {
   onlyOpenAccess: false,
   sources: { crossref: true, scholar: true, pubmed: true, semantic: true },
   externalAiEnabled: false,
-  externalApiUrl: '',
-  externalApiAttachment: '',
+  apiConfig: { nickname: '', baseUrl: '', modelId: '', apiKey: '' },
 };
 
 const seedLines = ['[10:32:15] DeepScholar ready', '[10:32:28] Waiting for user action'];
@@ -73,7 +72,7 @@ const styleLabelMap: Record<string, string> = {
   'doi-only': 'DOI only',
 };
 
-const expandTopic = (topic: string) => {
+const expandTopicLocally = (topic: string) => {
   const clean = topic.trim();
   if (!clean) return '';
   return [
@@ -124,11 +123,19 @@ const getEstimate = (settings: Settings) => {
 export function Dashboard() {
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('paper-harvester-settings');
-    return saved ? { ...initialSettings, ...JSON.parse(saved), topic: '' } : initialSettings;
+    if (!saved) return initialSettings;
+    const parsed = JSON.parse(saved);
+    return {
+      ...initialSettings,
+      ...parsed,
+      topic: '',
+      apiConfig: { ...initialSettings.apiConfig, ...parsed.apiConfig },
+    };
   });
   const [expandedTopic, setExpandedTopic] = useState('');
   const [expandedTopicDraft, setExpandedTopicDraft] = useState('');
   const [expansionAccepted, setExpansionAccepted] = useState(false);
+  const [isExpanding, setIsExpanding] = useState(false);
   const [references, setReferences] = useState<string[]>([]);
   const [lines, setLines] = useState(seedLines);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -145,11 +152,13 @@ export function Dashboard() {
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
-      }
+      if (timerRef.current) window.clearInterval(timerRef.current);
     };
   }, []);
+
+  const stamp = () => new Date().toLocaleTimeString('en-US', { hour12: false });
+
+  const apiConfigured = Boolean(settings.apiConfig.baseUrl.trim() && settings.apiConfig.apiKey.trim());
 
   const validationError = useMemo(() => {
     if (!settings.topic.trim()) return 'Search Focus Topic is required.';
@@ -157,16 +166,70 @@ export function Dashboard() {
     if (settings.startYear > settings.endYear) return 'Start year is later than end year.';
     if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR) return `Year range must be between 1900 and ${CURRENT_YEAR}.`;
     if (!Object.values(settings.sources).some(Boolean)) return 'At least one source must be enabled.';
-    if (settings.externalAiEnabled && !settings.externalApiUrl.trim()) return 'External AI API URL is required when attachment mode is enabled.';
+    if (settings.externalAiEnabled && !apiConfigured) return 'External AI is enabled but no API is configured. Add Base URL and API Key in the AI Provider section.';
     return null;
-  }, [expandedTopic, expansionAccepted, settings]);
+  }, [expandedTopic, expansionAccepted, settings, apiConfigured]);
 
-  const processExpansion = () => {
-    const next = expandTopic(settings.topic);
-    setExpandedTopic(next);
-    setExpandedTopicDraft(next);
-    setExpansionAccepted(false);
-    setLines((prev) => [...prev, `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] Expansion generated for search focus topic`]);
+  const processExpansion = async () => {
+    if (!settings.topic.trim()) return;
+    setIsExpanding(true);
+
+    if (settings.externalAiEnabled && apiConfigured) {
+      const { baseUrl, apiKey, modelId, nickname } = settings.apiConfig;
+      setLines((prev) => [...prev, `[${stamp()}] Calling ${nickname || 'AI API'} for topic expansion…`]);
+      try {
+        const res = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: modelId || 'gpt-4o',
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are a research assistant. Expand the given research topic into a comprehensive deep-research scope covering foundational work, current methods, adjacent terminology, dissenting findings, and actionable follow-up questions. Be concise and structured.',
+              },
+              {
+                role: 'user',
+                content: `Expand this research topic: "${settings.topic.trim()}"`,
+              },
+            ],
+            max_tokens: 600,
+          }),
+        });
+
+        if (!res.ok) throw new Error(`API responded with ${res.status}`);
+
+        const data = await res.json();
+        const content: string = data.choices?.[0]?.message?.content ?? '';
+        if (!content) throw new Error('Empty response from API');
+
+        setExpandedTopic(content);
+        setExpandedTopicDraft(content);
+        setExpansionAccepted(false);
+        setLines((prev) => [...prev, `[${stamp()}] Expansion received from ${nickname || 'AI API'}`]);
+      } catch (err) {
+        setLines((prev) => [
+          ...prev,
+          `[${stamp()}] API error: ${String(err)} — falling back to local expansion`,
+        ]);
+        const fallback = expandTopicLocally(settings.topic);
+        setExpandedTopic(fallback);
+        setExpandedTopicDraft(fallback);
+        setExpansionAccepted(false);
+      }
+    } else {
+      const next = expandTopicLocally(settings.topic);
+      setExpandedTopic(next);
+      setExpandedTopicDraft(next);
+      setExpansionAccepted(false);
+      setLines((prev) => [...prev, `[${stamp()}] Expansion generated for search focus topic`]);
+    }
+
+    setIsExpanding(false);
   };
 
   const runHarvest = () => {
@@ -176,12 +239,12 @@ export function Dashboard() {
         timerRef.current = null;
       }
       setIsRunning(false);
-      setLines((prev) => [...prev, `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] Run cancelled by user`]);
+      setLines((prev) => [...prev, `[${stamp()}] Run cancelled by user`]);
       return;
     }
 
     if (validationError) {
-      setLines((prev) => [...prev, `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] Cannot run: ${validationError}`]);
+      setLines((prev) => [...prev, `[${stamp()}] Cannot run: ${validationError}`]);
       return;
     }
 
@@ -206,7 +269,7 @@ export function Dashboard() {
     let eventIdx = 0;
 
     setIsRunning(true);
-    setLines((prev) => [...prev, `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] Starting DeepScholar run`]);
+    setLines((prev) => [...prev, `[${stamp()}] Starting DeepScholar run`]);
 
     timerRef.current = window.setInterval(() => {
       const chunkSize = 12;
@@ -216,12 +279,14 @@ export function Dashboard() {
         idx += chunk.length;
       }
 
-      const step = Math.min(deepResearchProcess.length - 1, Math.floor((idx / Math.max(generated.length, 1)) * deepResearchProcess.length));
+      const step = Math.min(
+        deepResearchProcess.length - 1,
+        Math.floor((idx / Math.max(generated.length, 1)) * deepResearchProcess.length),
+      );
       setActiveStep(step);
 
       if (eventIdx < events.length) {
-        const stamp = new Date().toLocaleTimeString('en-US', { hour12: false });
-        setLines((prev) => [...prev, `[${stamp}] ${events[eventIdx]}`]);
+        setLines((prev) => [...prev, `[${stamp()}] ${events[eventIdx]}`]);
         eventIdx += 1;
       }
 
@@ -230,7 +295,7 @@ export function Dashboard() {
         setActiveStep(deepResearchProcess.length - 1);
         setLines((prev) => [
           ...prev,
-          `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] Completed list with ${generated.length.toLocaleString()} references`,
+          `[${stamp()}] Completed list with ${generated.length.toLocaleString()} references`,
         ]);
         if (timerRef.current) {
           window.clearInterval(timerRef.current);
@@ -286,10 +351,10 @@ export function Dashboard() {
           <button
             type="button"
             onClick={processExpansion}
-            disabled={!settings.topic.trim()}
+            disabled={!settings.topic.trim() || isExpanding}
             className="mt-3 rounded-lg border border-cyan-300/50 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Process Expansion
+            {isExpanding ? 'Processing…' : 'Process Expansion'}
           </button>
 
           {expandedTopic && (
@@ -371,8 +436,8 @@ export function Dashboard() {
                 setSettings((s) => ({ ...s, sources: { ...s.sources, crossref: true } }));
                 return;
               }
-              if (settings.externalAiEnabled && !settings.externalApiUrl.trim()) {
-                setSettings((s) => ({ ...s, externalApiUrl: 'https://api.example.com/v1/references' }));
+              if (settings.externalAiEnabled && !apiConfigured) {
+                setSettingsMenuOpen(true);
               }
             }}
           />
@@ -386,7 +451,8 @@ export function Dashboard() {
         />
       </div>
     ),
-    [estimatedPapers, expandedTopic, expandedTopicDraft, expansionAccepted, isRunning, references, settings, validationError],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [estimatedPapers, expandedTopic, expandedTopicDraft, expansionAccepted, isExpanding, isRunning, references, settings, validationError, apiConfigured],
   );
 
   return (
@@ -441,6 +507,10 @@ export function Dashboard() {
                 </button>
               </div>
               <div className="space-y-4 pb-8">
+                <ApiConfigCard
+                  config={settings.apiConfig}
+                  onChange={(apiConfig) => setSettings((s) => ({ ...s, apiConfig }))}
+                />
                 <SearchConfigCard
                   topic={settings.topic}
                   setTopic={(topic) => setSettings((s) => ({ ...s, topic }))}
@@ -468,10 +538,8 @@ export function Dashboard() {
                   expandedTopic={expandedTopic}
                   externalAiEnabled={settings.externalAiEnabled}
                   setExternalAiEnabled={(externalAiEnabled) => setSettings((s) => ({ ...s, externalAiEnabled }))}
-                  externalApiUrl={settings.externalApiUrl}
-                  setExternalApiUrl={(externalApiUrl) => setSettings((s) => ({ ...s, externalApiUrl }))}
-                  externalApiAttachment={settings.externalApiAttachment}
-                  setExternalApiAttachment={(externalApiAttachment) => setSettings((s) => ({ ...s, externalApiAttachment }))}
+                  apiConfigured={apiConfigured}
+                  apiNickname={settings.apiConfig.nickname}
                 />
               </div>
             </div>
