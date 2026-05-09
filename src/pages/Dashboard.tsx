@@ -5,7 +5,7 @@ import { ErrorBox } from '../components/cards/ErrorBox';
 import { OutputCard } from '../components/cards/OutputCard';
 import { ReferenceResultsCard } from '../components/cards/ReferenceResultsCard';
 import { SearchConfigCard } from '../components/cards/SearchConfigCard';
-import { SourceSelectionCard } from '../components/cards/SourceSelectionCard';
+import { ActiveSourcesCard } from '../components/cards/ActiveSourcesCard';
 import { WispConfigCard, type WispConfig } from '../components/cards/WispConfigCard';
 import { ConsoleLog } from '../components/console/ConsoleLog';
 import { GlassCard } from '../components/ui/GlassCard';
@@ -22,12 +22,6 @@ type Settings = {
   includePreprints: boolean;
   excludePatents: boolean;
   onlyOpenAccess: boolean;
-  sources: {
-    crossref: boolean;
-    scholar: boolean;
-    pubmed: boolean;
-    semantic: boolean;
-  };
   externalAiEnabled: boolean;
   apiConfig: ApiConfig;
   wispConfig: WispConfig;
@@ -54,7 +48,6 @@ const initialSettings: Settings = {
   includePreprints: true,
   excludePatents: true,
   onlyOpenAccess: false,
-  sources: { crossref: true, scholar: true, pubmed: true, semantic: true },
   externalAiEnabled: false,
   apiConfig: { nickname: '', baseUrl: '', modelId: '', apiKey: '' },
   wispConfig: { baseUrl: '', apiKey: '' },
@@ -69,13 +62,6 @@ const deepResearchProcess = [
   'Refine and cross-validate high-signal evidence',
   'Synthesize, format, and stream references',
 ];
-
-const sourceWeights = {
-  crossref: 1.25,
-  scholar: 1.4,
-  pubmed: 1.15,
-  semantic: 1.2,
-} as const;
 
 const styleLabelMap: Record<string, string> = {
   apa: 'APA',
@@ -170,15 +156,10 @@ const generateSubQueries = (topic: string, expandedTopic: string, count: number)
 };
 
 const getEstimate = (settings: Settings) => {
-  const activeSources = Object.entries(settings.sources)
-    .filter(([, enabled]) => enabled)
-    .map(([key]) => key as keyof Settings['sources']);
-
-  const sourceScore = activeSources.reduce((sum, source) => sum + sourceWeights[source], 0);
   const yearSpan = Math.max(1, settings.endYear - settings.startYear + 1);
   const topicWordCount = settings.topic.trim().split(/\s+/).filter(Boolean).length;
 
-  let estimate = Math.round(sourceScore * settings.searchDepth * yearSpan * Math.max(1, topicWordCount * 0.9));
+  let estimate = Math.round(5.0 * settings.searchDepth * yearSpan * Math.max(1, topicWordCount * 0.9));
 
   if (settings.onlyOpenAccess) estimate = Math.round(estimate * 0.58);
   if (!settings.includePreprints) estimate = Math.round(estimate * 0.9);
@@ -244,7 +225,6 @@ export function Dashboard() {
     if (!expandedTopic.trim() || !expansionAccepted) return 'Please process expansion and click Accept before running.';
     if (settings.startYear > settings.endYear) return 'Start year is later than end year.';
     if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR) return `Year range must be between 1900 and ${CURRENT_YEAR}.`;
-    if (!Object.values(settings.sources).some(Boolean)) return 'At least one source must be enabled.';
     if (settings.externalAiEnabled && !apiConfigured && !wispConfigured)
       return 'External AI is enabled but no AI provider or WISP backend is configured.';
     return null;
@@ -416,7 +396,6 @@ export function Dashboard() {
         'Running deep research flow',
         `Expanded focus accepted for: "${settings.topic.trim()}"`,
         `Using style: ${styleLabelMap[settings.referenceStyle] ?? settings.referenceStyle}`,
-        `Selecting sources: ${Object.entries(settings.sources).filter(([, v]) => v).map(([k]) => k).join(', ')}`,
         `Streaming references for year range ${settings.startYear}-${settings.endYear}`,
       ];
 
@@ -589,10 +568,6 @@ export function Dashboard() {
                 setSettings((s) => ({ ...s, startYear: initialSettings.startYear, endYear: initialSettings.endYear }));
                 return;
               }
-              if (!Object.values(settings.sources).some(Boolean)) {
-                setSettings((s) => ({ ...s, sources: { ...s.sources, crossref: true } }));
-                return;
-              }
               if (settings.externalAiEnabled && !apiConfigured && !wispConfigured) {
                 setSettingsMenuOpen(true);
               }
@@ -701,11 +676,7 @@ export function Dashboard() {
                   onlyOpenAccess={settings.onlyOpenAccess}
                   setOnlyOpenAccess={(onlyOpenAccess) => setSettings((s) => ({ ...s, onlyOpenAccess }))}
                 />
-                <SourceSelectionCard
-                  sources={settings.sources}
-                  setSources={(sources) => setSettings((s) => ({ ...s, sources }))}
-                  estimatedPapers={displayEstimate}
-                />
+                <ActiveSourcesCard estimatedPapers={displayEstimate} />
 
                 {/* Output */}
                 <p className="px-0.5 pt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Output</p>
