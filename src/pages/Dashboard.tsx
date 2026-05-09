@@ -333,6 +333,7 @@ export function Dashboard() {
           ? `[${stamp()}] Stopped by user: ${totalCount} unique papers`
           : `[${stamp()}] Search complete: ${totalCount} unique papers`,
       ]);
+    }
   };
 
   // ── Export ───────────────────────────────────────────────────────────────
