@@ -16,21 +16,23 @@ type Props = {
 
 export function SourceSelectionCard({ sources, setSources, estimatedPapers }: Props) {
   const set = (key: keyof Sources, value: boolean) => setSources({ ...sources, [key]: value });
-
   const activeCount = Object.values(sources).filter(Boolean).length;
 
   return (
-    <GlassCard className="p-4 sm:p-6">
-      <h2 className="mb-4 text-2xl font-semibold text-white sm:text-3xl">STEP 2: REFERENCE INDEX SOURCES</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Toggle id="src-crossref" checked={sources.crossref} onChange={(v) => set('crossref', v)} label="Crossref API" />
+    <GlassCard className="p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-white">Reference Sources</h3>
+        <span className="text-xs text-slate-400">
+          {activeCount} active · ~{estimatedPapers.toLocaleString()} refs
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Toggle id="src-crossref" checked={sources.crossref} onChange={(v) => set('crossref', v)} label="Crossref" />
         <Toggle id="src-scholar" checked={sources.scholar} onChange={(v) => set('scholar', v)} label="Google Scholar" />
         <Toggle id="src-pubmed" checked={sources.pubmed} onChange={(v) => set('pubmed', v)} label="PubMed" />
         <Toggle id="src-semantic" checked={sources.semantic} onChange={(v) => set('semantic', v)} label="Semantic Scholar" />
       </div>
-      <p className="mt-4 text-lg text-slate-400">
-        Using {activeCount} source{activeCount === 1 ? '' : 's'} — projected up to {Math.min(estimatedPapers, 2500).toLocaleString()} generated references
-      </p>
     </GlassCard>
   );
 }

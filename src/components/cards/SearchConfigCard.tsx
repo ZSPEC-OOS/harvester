@@ -1,4 +1,3 @@
-import { Info } from 'lucide-react';
 import { Checkbox } from '../ui/Checkbox';
 import { GlassCard } from '../ui/GlassCard';
 import { Slider } from '../ui/Slider';
@@ -24,75 +23,91 @@ type Props = {
 
 export function SearchConfigCard(props: Props) {
   return (
-    <GlassCard className="border-blue-300/20 p-4 sm:p-6">
-      <h2 className="mb-4 flex items-center gap-2 text-2xl font-semibold text-white sm:text-3xl">
-        STEP 1: TOPIC + CITATION FORMAT <Info size={18} className="text-slate-400" />
-      </h2>
+    <GlassCard className="p-4">
+      <h3 className="mb-3 text-sm font-semibold text-white">Search Configuration</h3>
 
-      <label className="mb-3 block text-slate-300" htmlFor="topic">
-        Topic for DeepScholar
-      </label>
-      <input
-        id="topic"
-        value={props.topic}
-        onChange={(e) => props.setTopic(e.target.value)}
-        className="mb-4 w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
-        placeholder="e.g. foundation models for protein design"
-      />
-
-      <label className="mb-3 block text-slate-300" htmlFor="reference-style">
-        Reference Style
-      </label>
-      <select
-        id="reference-style"
-        value={props.referenceStyle}
-        onChange={(e) => props.setReferenceStyle(e.target.value)}
-        className="mb-4 w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
-      >
-        <option value="apa">APA</option>
-        <option value="mla">MLA</option>
-        <option value="chicago">Chicago</option>
-        <option value="vancouver">Vancouver</option>
-        <option value="doi-only">DOI only</option>
-      </select>
-
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="text-slate-300">
-          <span className="mb-2 block">Start Year</span>
+      <div className="space-y-2.5">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="topic">
+            Topic
+          </label>
           <input
-            type="number"
-            min={1900}
-            max={props.endYear}
-            value={props.startYear}
-            onChange={(e) => props.setStartYear(Number(e.target.value))}
-            className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
+            id="topic"
+            value={props.topic}
+            onChange={(e) => props.setTopic(e.target.value)}
+            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
+            placeholder="e.g. foundation models for protein design"
           />
-        </label>
+        </div>
 
-        <label className="text-slate-300">
-          <span className="mb-2 block">End Year</span>
-          <input
-            type="number"
-            min={props.startYear}
-            max={new Date().getFullYear()}
-            value={props.endYear}
-            onChange={(e) => props.setEndYear(Number(e.target.value))}
-            className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
-          />
-        </label>
-      </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="reference-style">
+            Citation Style
+          </label>
+          <select
+            id="reference-style"
+            value={props.referenceStyle}
+            onChange={(e) => props.setReferenceStyle(e.target.value)}
+            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
+          >
+            <option value="apa">APA</option>
+            <option value="mla">MLA</option>
+            <option value="chicago">Chicago</option>
+            <option value="vancouver">Vancouver</option>
+            <option value="doi-only">DOI only</option>
+          </select>
+        </div>
 
-      <p className="mb-2 text-lg text-slate-300">Search Breadth: {props.searchDepth} passes</p>
-      <div className="mb-4 flex items-center gap-3 text-slate-300">
-        <span>1</span>
-        <Slider id="depth" value={props.searchDepth} onChange={props.setSearchDepth} min={1} max={20} />
-        <span>20</span>
-      </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="start-year">
+              Start Year
+            </label>
+            <input
+              id="start-year"
+              type="number"
+              min={1900}
+              max={props.endYear}
+              value={props.startYear}
+              onChange={(e) => props.setStartYear(Number(e.target.value))}
+              className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="end-year">
+              End Year
+            </label>
+            <input
+              id="end-year"
+              type="number"
+              min={props.startYear}
+              max={new Date().getFullYear()}
+              value={props.endYear}
+              onChange={(e) => props.setEndYear(Number(e.target.value))}
+              className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
+            />
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Checkbox id="include-preprints" checked={props.includePreprints} onChange={props.setIncludePreprints} label="Include preprints" />
-        <Checkbox id="exclude-patents" checked={props.excludePatents} onChange={props.setExcludePatents} label="Exclude patents" />
-        <Checkbox id="only-oa" checked={props.onlyOpenAccess} onChange={props.setOnlyOpenAccess} label="Prefer open access" />
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="text-xs font-medium text-slate-400" htmlFor="depth">
+              Search Breadth
+            </label>
+            <span className="text-xs text-slate-300">{props.searchDepth} passes</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span>1</span>
+            <Slider id="depth" value={props.searchDepth} onChange={props.setSearchDepth} min={1} max={20} />
+            <span>20</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 pt-0.5">
+          <Checkbox id="include-preprints" checked={props.includePreprints} onChange={props.setIncludePreprints} label="Preprints" />
+          <Checkbox id="exclude-patents" checked={props.excludePatents} onChange={props.setExcludePatents} label="No patents" />
+          <Checkbox id="only-oa" checked={props.onlyOpenAccess} onChange={props.setOnlyOpenAccess} label="Open access" />
+        </div>
       </div>
     </GlassCard>
   );

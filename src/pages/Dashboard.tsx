@@ -6,6 +6,7 @@ import { OutputCard } from '../components/cards/OutputCard';
 import { ReferenceResultsCard } from '../components/cards/ReferenceResultsCard';
 import { SearchConfigCard } from '../components/cards/SearchConfigCard';
 import { SourceSelectionCard } from '../components/cards/SourceSelectionCard';
+import { WispConfigCard, type WispConfig } from '../components/cards/WispConfigCard';
 import { ConsoleLog } from '../components/console/ConsoleLog';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Container } from '../components/layout/Container';
@@ -29,6 +30,17 @@ type Settings = {
   };
   externalAiEnabled: boolean;
   apiConfig: ApiConfig;
+  wispConfig: WispConfig;
+};
+
+type WispPaper = {
+  title: string;
+  doi: string | null;
+  authors: string[];
+  publication_year: number | null;
+  url: string;
+  oa_pdf_url: string | null;
+  provider: string;
 };
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -45,6 +57,7 @@ const initialSettings: Settings = {
   sources: { crossref: true, scholar: true, pubmed: true, semantic: true },
   externalAiEnabled: false,
   apiConfig: { nickname: '', baseUrl: '', modelId: '', apiKey: '' },
+  wispConfig: { baseUrl: '', apiKey: '' },
 };
 
 const seedLines = ['[10:32:15] DeepScholar ready', '[10:32:28] Waiting for user action'];
@@ -72,6 +85,8 @@ const styleLabelMap: Record<string, string> = {
   'doi-only': 'DOI only',
 };
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
 const expandTopicLocally = (topic: string) => {
   const clean = topic.trim();
   if (!clean) return '';
@@ -94,12 +109,64 @@ const buildMockReferences = (settings: Settings, expandedTopic: string, targetCo
     const journal = `Journal of DeepScholar Synthesis ${((i % 18) + 1).toString().padStart(2, '0')}`;
     const doi = `10.${1200 + (i % 700)}/deep.${year}.${(i + 1).toString().padStart(5, '0')}`;
 
-    if (settings.referenceStyle === 'doi-only') {
-      return `${i + 1}. ${doi}`;
-    }
-
+    if (settings.referenceStyle === 'doi-only') return `${i + 1}. ${doi}`;
     return `${i + 1}. [${style}] Rivera, A., Noor, K., & Patel, J. (${year}). ${title}. ${journal}. https://doi.org/${doi}`;
   });
+};
+
+const formatPaperCitation = (paper: WispPaper, index: number, style: string): string => {
+  const authorStr =
+    paper.authors.length > 0
+      ? paper.authors.slice(0, 3).join(', ') + (paper.authors.length > 3 ? ', et al.' : '')
+      : 'Unknown Author';
+  const year = paper.publication_year ?? 'n.d.';
+  const link = paper.doi ? `https://doi.org/${paper.doi}` : paper.url;
+
+  switch (style) {
+    case 'apa':
+      return `${index}. ${authorStr} (${year}). ${paper.title}. ${link}`;
+    case 'mla':
+      return `${index}. ${authorStr}. "${paper.title}." ${year}. ${link}`;
+    case 'chicago':
+      return `${index}. ${authorStr}. "${paper.title}." ${year}. ${link}`;
+    case 'vancouver':
+      return `${index}. ${authorStr}. ${paper.title}. ${year}. Available from: ${link}`;
+    case 'doi-only':
+      return `${index}. ${paper.doi ?? paper.url}`;
+    default:
+      return `${index}. ${authorStr} (${year}). ${paper.title}. ${link}`;
+  }
+};
+
+const fetchWispPapers = async (query: string, wisp: WispConfig): Promise<WispPaper[]> => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (wisp.apiKey.trim()) headers['X-API-Key'] = wisp.apiKey;
+
+  const res = await fetch(`${wisp.baseUrl.replace(/\/$/, '')}/v1/academic`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ prompt: query, question: '', max_papers: 10 }),
+  });
+
+  if (!res.ok) throw new Error(`WISP ${res.status}`);
+  const data = await res.json();
+  return (data.papers ?? []) as WispPaper[];
+};
+
+const generateSubQueries = (topic: string, expandedTopic: string, count: number): string[] => {
+  const lines = expandedTopic
+    .split('\n')
+    .map((l) => l.replace(/^[^:]+:\s*/, '').trim())
+    .filter((l) => l.length > 20 && l.length < 400);
+
+  const queries: string[] = [topic];
+  for (const line of lines) {
+    if (queries.length >= count) break;
+    const sub = line.split('.')[0].trim();
+    if (sub) queries.push(sub);
+  }
+  while (queries.length < count) queries.push(topic);
+  return queries.slice(0, count);
 };
 
 const getEstimate = (settings: Settings) => {
@@ -120,6 +187,8 @@ const getEstimate = (settings: Settings) => {
   return Math.max(0, estimate);
 };
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function Dashboard() {
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('paper-harvester-settings');
@@ -130,8 +199,10 @@ export function Dashboard() {
       ...parsed,
       topic: '',
       apiConfig: { ...initialSettings.apiConfig, ...parsed.apiConfig },
+      wispConfig: { ...initialSettings.wispConfig, ...parsed.wispConfig },
     };
   });
+
   const [expandedTopic, setExpandedTopic] = useState('');
   const [expandedTopicDraft, setExpandedTopicDraft] = useState('');
   const [expansionAccepted, setExpansionAccepted] = useState(false);
@@ -143,12 +214,11 @@ export function Dashboard() {
   const [isRunning, setIsRunning] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const timerRef = useRef<number | null>(null);
+  const cancelRef = useRef(false);
 
   useEffect(() => {
     localStorage.setItem('paper-harvester-settings', JSON.stringify(settings));
   }, [settings]);
-
-  const estimatedPapers = useMemo(() => getEstimate(settings), [settings]);
 
   useEffect(() => {
     return () => {
@@ -158,7 +228,16 @@ export function Dashboard() {
 
   const stamp = () => new Date().toLocaleTimeString('en-US', { hour12: false });
 
+  const wispConfigured = Boolean(settings.wispConfig.baseUrl.trim());
   const apiConfigured = Boolean(settings.apiConfig.baseUrl.trim() && settings.apiConfig.apiKey.trim());
+
+  // Realistic estimate when WISP is active: ~7 unique papers per pass after dedup
+  const wispEstimate = useMemo(
+    () => (wispConfigured ? Math.min(settings.searchDepth * 7, 140) : null),
+    [wispConfigured, settings.searchDepth],
+  );
+  const mockEstimate = useMemo(() => getEstimate(settings), [settings]);
+  const displayEstimate = wispEstimate ?? mockEstimate;
 
   const validationError = useMemo(() => {
     if (!settings.topic.trim()) return 'Search Focus Topic is required.';
@@ -166,24 +245,59 @@ export function Dashboard() {
     if (settings.startYear > settings.endYear) return 'Start year is later than end year.';
     if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR) return `Year range must be between 1900 and ${CURRENT_YEAR}.`;
     if (!Object.values(settings.sources).some(Boolean)) return 'At least one source must be enabled.';
-    if (settings.externalAiEnabled && !apiConfigured) return 'External AI is enabled but no API is configured. Add Base URL and API Key in the AI Provider section.';
+    if (settings.externalAiEnabled && !apiConfigured && !wispConfigured)
+      return 'External AI is enabled but no AI provider or WISP backend is configured.';
     return null;
-  }, [expandedTopic, expansionAccepted, settings, apiConfigured]);
+  }, [expandedTopic, expansionAccepted, settings, apiConfigured, wispConfigured]);
+
+  // ── Topic expansion ──────────────────────────────────────────────────────
 
   const processExpansion = async () => {
     if (!settings.topic.trim()) return;
     setIsExpanding(true);
 
+    // 1. Try WISP /v1/research first
+    if (wispConfigured) {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (settings.wispConfig.apiKey.trim()) headers['X-API-Key'] = settings.wispConfig.apiKey;
+      setLines((prev) => [...prev, `[${stamp()}] Calling WISP for topic expansion…`]);
+      try {
+        const res = await fetch(`${settings.wispConfig.baseUrl.replace(/\/$/, '')}/v1/research`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            query: settings.topic.trim(),
+            mode: 'concise',
+            max_sources: 6,
+            synthesis_mode: 'auto',
+          }),
+        });
+        if (!res.ok) throw new Error(`WISP ${res.status}`);
+        const data = await res.json();
+        const content: string = data.detailed_report || data.final_answer || data.executive_summary || '';
+        if (!content) throw new Error('Empty WISP response');
+        setExpandedTopic(content);
+        setExpandedTopicDraft(content);
+        setExpansionAccepted(false);
+        setLines((prev) => [
+          ...prev,
+          `[${stamp()}] Expansion received from WISP (${data.sources?.length ?? 0} sources, confidence ${((data.confidence_score ?? 0) * 100).toFixed(0)}%)`,
+        ]);
+        setIsExpanding(false);
+        return;
+      } catch (err) {
+        setLines((prev) => [...prev, `[${stamp()}] WISP expansion failed: ${String(err)} — trying next option`]);
+      }
+    }
+
+    // 2. Try configured OpenAI-compatible API
     if (settings.externalAiEnabled && apiConfigured) {
       const { baseUrl, apiKey, modelId, nickname } = settings.apiConfig;
       setLines((prev) => [...prev, `[${stamp()}] Calling ${nickname || 'AI API'} for topic expansion…`]);
       try {
         const res = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-          },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
           body: JSON.stringify({
             model: modelId || 'gpt-4o',
             messages: [
@@ -192,48 +306,41 @@ export function Dashboard() {
                 content:
                   'You are a research assistant. Expand the given research topic into a comprehensive deep-research scope covering foundational work, current methods, adjacent terminology, dissenting findings, and actionable follow-up questions. Be concise and structured.',
               },
-              {
-                role: 'user',
-                content: `Expand this research topic: "${settings.topic.trim()}"`,
-              },
+              { role: 'user', content: `Expand this research topic: "${settings.topic.trim()}"` },
             ],
             max_tokens: 600,
           }),
         });
-
-        if (!res.ok) throw new Error(`API responded with ${res.status}`);
-
+        if (!res.ok) throw new Error(`API ${res.status}`);
         const data = await res.json();
         const content: string = data.choices?.[0]?.message?.content ?? '';
-        if (!content) throw new Error('Empty response from API');
-
+        if (!content) throw new Error('Empty response');
         setExpandedTopic(content);
         setExpandedTopicDraft(content);
         setExpansionAccepted(false);
         setLines((prev) => [...prev, `[${stamp()}] Expansion received from ${nickname || 'AI API'}`]);
+        setIsExpanding(false);
+        return;
       } catch (err) {
-        setLines((prev) => [
-          ...prev,
-          `[${stamp()}] API error: ${String(err)} — falling back to local expansion`,
-        ]);
-        const fallback = expandTopicLocally(settings.topic);
-        setExpandedTopic(fallback);
-        setExpandedTopicDraft(fallback);
-        setExpansionAccepted(false);
+        setLines((prev) => [...prev, `[${stamp()}] AI API error: ${String(err)} — falling back to local expansion`]);
       }
-    } else {
-      const next = expandTopicLocally(settings.topic);
-      setExpandedTopic(next);
-      setExpandedTopicDraft(next);
-      setExpansionAccepted(false);
-      setLines((prev) => [...prev, `[${stamp()}] Expansion generated for search focus topic`]);
     }
 
+    // 3. Local mock expansion
+    const next = expandTopicLocally(settings.topic);
+    setExpandedTopic(next);
+    setExpandedTopicDraft(next);
+    setExpansionAccepted(false);
+    setLines((prev) => [...prev, `[${stamp()}] Expansion generated locally`]);
     setIsExpanding(false);
   };
 
-  const runHarvest = () => {
+  // ── Harvest ──────────────────────────────────────────────────────────────
+
+  const runHarvest = async () => {
+    // Stop if already running
     if (isRunning) {
+      cancelRef.current = true;
       if (timerRef.current) {
         window.clearInterval(timerRef.current);
         timerRef.current = null;
@@ -248,62 +355,110 @@ export function Dashboard() {
       return;
     }
 
-    const finalExpandedTopic = expandedTopicDraft.trim() || expandedTopic;
-    setExpandedTopic(finalExpandedTopic);
+    const finalTopic = expandedTopicDraft.trim() || expandedTopic;
+    setExpandedTopic(finalTopic);
     setReferences([]);
     setActiveStep(0);
-
-    const events = [
-      'Running deep research flow',
-      `Expanded focus accepted for: "${settings.topic.trim()}"`,
-      `Using style: ${styleLabelMap[settings.referenceStyle] ?? settings.referenceStyle}`,
-      `Selecting sources: ${Object.entries(settings.sources)
-        .filter(([, v]) => v)
-        .map(([k]) => k)
-        .join(', ')}`,
-      `Streaming references for year range ${settings.startYear}-${settings.endYear}`,
-    ];
-
-    const generated = buildMockReferences(settings, finalExpandedTopic, estimatedPapers);
-    let idx = 0;
-    let eventIdx = 0;
-
+    cancelRef.current = false;
     setIsRunning(true);
-    setLines((prev) => [...prev, `[${stamp()}] Starting DeepScholar run`]);
 
-    timerRef.current = window.setInterval(() => {
-      const chunkSize = 12;
-      const chunk = generated.slice(idx, idx + chunkSize);
-      if (chunk.length > 0) {
-        setReferences((prev) => [...prev, ...chunk]);
-        idx += chunk.length;
-      }
+    if (wispConfigured) {
+      // ── Real WISP academic search ────────────────────────────────────────
+      const passes = Math.min(settings.searchDepth, 20);
+      const queries = generateSubQueries(settings.topic, finalTopic, passes);
+      const seenDois = new Set<string>();
+      let totalCount = 0;
 
-      const step = Math.min(
-        deepResearchProcess.length - 1,
-        Math.floor((idx / Math.max(generated.length, 1)) * deepResearchProcess.length),
-      );
-      setActiveStep(step);
+      setLines((prev) => [...prev, `[${stamp()}] Starting WISP academic search — ${passes} passes across OpenAlex, arXiv, Semantic Scholar`]);
 
-      if (eventIdx < events.length) {
-        setLines((prev) => [...prev, `[${stamp()}] ${events[eventIdx]}`]);
-        eventIdx += 1;
-      }
+      for (let i = 0; i < queries.length; i++) {
+        if (cancelRef.current) break;
 
-      if (idx >= generated.length) {
-        setIsRunning(false);
-        setActiveStep(deepResearchProcess.length - 1);
-        setLines((prev) => [
-          ...prev,
-          `[${stamp()}] Completed list with ${generated.length.toLocaleString()} references`,
-        ]);
-        if (timerRef.current) {
-          window.clearInterval(timerRef.current);
-          timerRef.current = null;
+        setActiveStep(Math.min(deepResearchProcess.length - 1, Math.floor((i / queries.length) * deepResearchProcess.length)));
+
+        try {
+          const papers = await fetchWispPapers(queries[i], settings.wispConfig);
+
+          const newPapers = papers.filter((p) => {
+            if (!p.doi) return true; // no DOI to dedup on, keep it
+            if (seenDois.has(p.doi)) return false;
+            seenDois.add(p.doi);
+            return true;
+          });
+
+          if (newPapers.length > 0) {
+            const formatted = newPapers.map((p, j) =>
+              formatPaperCitation(p, totalCount + j + 1, settings.referenceStyle),
+            );
+            totalCount += newPapers.length;
+            setReferences((prev) => [...prev, ...formatted]);
+
+            const providers = [...new Set(newPapers.map((p) => p.provider))].join(', ');
+            setLines((prev) => [
+              ...prev,
+              `[${stamp()}] Pass ${i + 1}/${passes}: +${newPapers.length} papers (${providers})`,
+            ]);
+          }
+        } catch (err) {
+          setLines((prev) => [...prev, `[${stamp()}] Pass ${i + 1} error: ${String(err)}`]);
         }
       }
-    }, 350);
+
+      setActiveStep(deepResearchProcess.length - 1);
+      setIsRunning(false);
+      setLines((prev) => [
+        ...prev,
+        `[${stamp()}] ${cancelRef.current ? 'Stopped' : 'Complete'}: ${totalCount} unique papers`,
+      ]);
+    } else {
+      // ── Mock generation (streaming via setInterval) ──────────────────────
+      const events = [
+        'Running deep research flow',
+        `Expanded focus accepted for: "${settings.topic.trim()}"`,
+        `Using style: ${styleLabelMap[settings.referenceStyle] ?? settings.referenceStyle}`,
+        `Selecting sources: ${Object.entries(settings.sources).filter(([, v]) => v).map(([k]) => k).join(', ')}`,
+        `Streaming references for year range ${settings.startYear}-${settings.endYear}`,
+      ];
+
+      const generated = buildMockReferences(settings, finalTopic, mockEstimate);
+      let idx = 0;
+      let eventIdx = 0;
+
+      setLines((prev) => [...prev, `[${stamp()}] Starting DeepScholar run (mock mode — configure WISP for real results)`]);
+
+      timerRef.current = window.setInterval(() => {
+        const chunk = generated.slice(idx, idx + 12);
+        if (chunk.length > 0) {
+          setReferences((prev) => [...prev, ...chunk]);
+          idx += chunk.length;
+        }
+
+        setActiveStep(
+          Math.min(deepResearchProcess.length - 1, Math.floor((idx / Math.max(generated.length, 1)) * deepResearchProcess.length)),
+        );
+
+        if (eventIdx < events.length) {
+          setLines((prev) => [...prev, `[${stamp()}] ${events[eventIdx]}`]);
+          eventIdx += 1;
+        }
+
+        if (idx >= generated.length) {
+          setIsRunning(false);
+          setActiveStep(deepResearchProcess.length - 1);
+          setLines((prev) => [
+            ...prev,
+            `[${stamp()}] Completed list with ${generated.length.toLocaleString()} mock references`,
+          ]);
+          if (timerRef.current) {
+            window.clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+        }
+      }, 350);
+    }
   };
+
+  // ── Export ───────────────────────────────────────────────────────────────
 
   const exportText = () => {
     const payload = [
@@ -327,6 +482,8 @@ export function Dashboard() {
     URL.revokeObjectURL(url);
   };
 
+  // ── Main cards ────────────────────────────────────────────────────────────
+
   const cards = useMemo(
     () => (
       <div className="space-y-4">
@@ -348,14 +505,19 @@ export function Dashboard() {
             className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-sm text-white"
             placeholder="Enter your topic"
           />
-          <button
-            type="button"
-            onClick={processExpansion}
-            disabled={!settings.topic.trim() || isExpanding}
-            className="mt-3 rounded-lg border border-cyan-300/50 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isExpanding ? 'Processing…' : 'Process Expansion'}
-          </button>
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={processExpansion}
+              disabled={!settings.topic.trim() || isExpanding}
+              className="rounded-lg border border-cyan-300/50 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isExpanding ? 'Processing…' : 'Process Expansion'}
+            </button>
+            {wispConfigured && !isExpanding && (
+              <span className="text-xs text-emerald-400">via WISP</span>
+            )}
+          </div>
 
           {expandedTopic && (
             <div className="mt-4 space-y-3">
@@ -416,18 +578,9 @@ export function Dashboard() {
             message={validationError}
             onFix={() => {
               if (!settings.topic.trim()) return;
-              if (!expandedTopic.trim()) {
-                processExpansion();
-                return;
-              }
-              if (!expansionAccepted) {
-                setExpansionAccepted(true);
-                return;
-              }
-              if (settings.startYear > settings.endYear) {
-                setSettings((s) => ({ ...s, endYear: s.startYear }));
-                return;
-              }
+              if (!expandedTopic.trim()) { processExpansion(); return; }
+              if (!expansionAccepted) { setExpansionAccepted(true); return; }
+              if (settings.startYear > settings.endYear) { setSettings((s) => ({ ...s, endYear: s.startYear })); return; }
               if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR) {
                 setSettings((s) => ({ ...s, startYear: initialSettings.startYear, endYear: initialSettings.endYear }));
                 return;
@@ -436,23 +589,24 @@ export function Dashboard() {
                 setSettings((s) => ({ ...s, sources: { ...s.sources, crossref: true } }));
                 return;
               }
-              if (settings.externalAiEnabled && !apiConfigured) {
+              if (settings.externalAiEnabled && !apiConfigured && !wispConfigured) {
                 setSettingsMenuOpen(true);
               }
             }}
           />
         )}
+
         <ActionCard
           onRun={runHarvest}
           onExportText={exportText}
-          estimatedPapers={estimatedPapers}
+          estimatedPapers={displayEstimate}
           disableRun={Boolean(validationError)}
           isRunning={isRunning}
         />
       </div>
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [estimatedPapers, expandedTopic, expandedTopicDraft, expansionAccepted, isExpanding, isRunning, references, settings, validationError, apiConfigured],
+    [activeStep, apiConfigured, displayEstimate, expandedTopic, expandedTopicDraft, expansionAccepted, isExpanding, isRunning, references, settings, validationError, wispConfigured],
   );
 
   return (
@@ -462,7 +616,7 @@ export function Dashboard() {
         <div className="relative grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,800px)_340px] xl:items-start">
           {cards}
           <aside className="hidden xl:sticky xl:top-24 xl:block">
-            <CacheStats gatheredCount={references.length} targetCount={estimatedPapers} />
+            <CacheStats gatheredCount={references.length} targetCount={displayEstimate} />
           </aside>
         </div>
 
@@ -488,29 +642,43 @@ export function Dashboard() {
         >
           <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-slate-600" />
           <div className="space-y-3">
-            <CacheStats gatheredCount={references.length} targetCount={estimatedPapers} />
+            <CacheStats gatheredCount={references.length} targetCount={displayEstimate} />
             <ConsoleLog lines={lines} />
           </div>
         </div>
 
         {settingsMenuOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
-            <div className="absolute left-0 top-0 h-full w-full max-w-xl overflow-y-auto border-r border-white/10 bg-[#060913] p-4 sm:p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">Settings</h2>
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={() => setSettingsMenuOpen(false)}>
+            <div
+              className="absolute left-0 top-0 h-full w-full max-w-sm overflow-y-auto border-r border-white/10 bg-[#060913] shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#060913]/95 px-4 py-3 backdrop-blur">
+                <h2 className="text-sm font-semibold text-white">Settings</h2>
                 <button
                   type="button"
                   onClick={() => setSettingsMenuOpen(false)}
-                  className="rounded-lg border border-white/20 bg-white/5 px-3 py-1 text-sm text-white"
+                  className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-slate-300 transition hover:bg-white/10"
                 >
                   Close
                 </button>
               </div>
-              <div className="space-y-4 pb-8">
+
+              <div className="space-y-3 p-4 pb-10">
+                {/* Backends */}
+                <p className="px-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Backends</p>
+                <WispConfigCard
+                  config={settings.wispConfig}
+                  onChange={(wispConfig) => setSettings((s) => ({ ...s, wispConfig }))}
+                />
                 <ApiConfigCard
                   config={settings.apiConfig}
                   onChange={(apiConfig) => setSettings((s) => ({ ...s, apiConfig }))}
                 />
+
+                {/* Search */}
+                <p className="px-0.5 pt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Search</p>
                 <SearchConfigCard
                   topic={settings.topic}
                   setTopic={(topic) => setSettings((s) => ({ ...s, topic }))}
@@ -532,8 +700,11 @@ export function Dashboard() {
                 <SourceSelectionCard
                   sources={settings.sources}
                   setSources={(sources) => setSettings((s) => ({ ...s, sources }))}
-                  estimatedPapers={estimatedPapers}
+                  estimatedPapers={displayEstimate}
                 />
+
+                {/* Output */}
+                <p className="px-0.5 pt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Output</p>
                 <OutputCard
                   expandedTopic={expandedTopic}
                   externalAiEnabled={settings.externalAiEnabled}

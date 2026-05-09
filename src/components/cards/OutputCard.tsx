@@ -11,38 +11,39 @@ type Props = {
 
 export function OutputCard({ expandedTopic, externalAiEnabled, setExternalAiEnabled, apiConfigured, apiNickname }: Props) {
   return (
-    <GlassCard className="p-4 sm:p-6">
-      <h2 className="mb-4 text-2xl font-semibold text-white sm:text-3xl">STEP 3: AI EXPANSION + API ATTACHMENT</h2>
-
-      <label className="mb-2 block text-slate-300" htmlFor="expanded-topic">
-        AI Expanded Topic (auto-generated when you run)
-      </label>
-      <textarea
-        id="expanded-topic"
-        value={expandedTopic}
-        readOnly
-        className="mb-4 min-h-24 w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
-        placeholder="DeepScholar will expand your topic into related terminology, synonyms, and adjacent subfields."
-      />
+    <GlassCard className="p-4">
+      <h3 className="mb-3 text-sm font-semibold text-white">AI Expansion</h3>
 
       <div className="mb-3">
         <Checkbox
           id="external-ai"
           checked={externalAiEnabled}
           onChange={setExternalAiEnabled}
-          label="Use external AI API for topic expansion"
+          label="Use AI Provider for topic expansion"
         />
+        <p className="ml-6 mt-1 text-[11px] text-slate-500">
+          When off, WISP or local fallback is used instead
+        </p>
       </div>
 
       {externalAiEnabled && (
-        <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm">
+        <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-xs">
           {apiConfigured ? (
-            <p className="text-emerald-300">
-              Using <span className="font-medium">{apiNickname || 'configured API'}</span> — edit details in the AI Provider section above.
+            <p className="text-emerald-400">
+              Using <span className="font-medium">{apiNickname || 'configured API'}</span> — edit in AI Provider above.
             </p>
           ) : (
-            <p className="text-amber-300">No API configured. Fill in the AI Provider section above to enable real AI expansion.</p>
+            <p className="text-amber-400">No AI Provider configured. Fill in the AI Provider section above.</p>
           )}
+        </div>
+      )}
+
+      {expandedTopic && (
+        <div className="mt-3">
+          <p className="mb-1 text-xs font-medium text-slate-400">Current Expanded Topic</p>
+          <div className="max-h-28 overflow-auto rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+            <p className="text-xs leading-relaxed text-slate-300">{expandedTopic}</p>
+          </div>
         </div>
       )}
     </GlassCard>
