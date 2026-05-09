@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { ActionCard } from '../components/cards/ActionCard';
 import { ApiConfigCard, type ApiConfig } from '../components/cards/ApiConfigCard';
 import { ErrorBox } from '../components/cards/ErrorBox';
@@ -12,6 +13,8 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { Container } from '../components/layout/Container';
 import { TopBar } from '../components/layout/TopBar';
 import { CacheStats } from '../components/sidebar/CacheStats';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type Settings = {
   topic: string;
@@ -27,7 +30,7 @@ type Settings = {
   wispConfig: WispConfig;
 };
 
-type WispPaper = {
+export type WispPaper = {
   title: string;
   doi: string | null;
   authors: string[];
@@ -36,6 +39,23 @@ type WispPaper = {
   oa_pdf_url: string | null;
   provider: string;
 };
+
+type ExportFormat = 'txt' | 'bibtex' | 'ris';
+
+type HistoryEntry = {
+  id: string;
+  topic: string;
+  count: number;
+  timestamp: number;
+};
+
+type ClarifyAnswers = {
+  focus: string;
+  recency: 'Foundational' | 'Recent' | 'Both';
+  domain: string;
+};
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -52,6 +72,8 @@ const initialSettings: Settings = {
   apiConfig: { nickname: '', baseUrl: '', modelId: '', apiKey: '' },
   wispConfig: { baseUrl: '', apiKey: '' },
 };
+
+const initialClarify: ClarifyAnswers = { focus: '', recency: 'Both', domain: '' };
 
 const seedLines = ['[10:32:15] DeepScholar ready', '[10:32:28] Waiting for user action'];
 
@@ -71,7 +93,7 @@ const styleLabelMap: Record<string, string> = {
   'doi-only': 'DOI only',
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const expandTopicLocally = (topic: string) => {
   const clean = topic.trim();
@@ -108,6 +130,82 @@ const formatPaperCitation = (paper: WispPaper, index: number, style: string): st
   }
 };
 
+const isPreprint = (p: WispPaper): boolean => {
+  const prov = p.provider.toLowerCase();
+  return prov.includes('arxiv') || prov.includes('biorxiv') || prov.includes('medrxiv') || p.url.includes('arxiv.org');
+};
+
+const normalizeTitle = (t: string): string =>
+  t.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 60);
+
+const buildExport = (
+  papers: WispPaper[],
+  topic: string,
+  expandedTopic: string,
+  style: string,
+  format: ExportFormat,
+): { content: string; filename: string; mime: string } => {
+  if (format === 'bibtex') {
+    const entries = papers.map((p, i) => {
+      const key = p.doi ? p.doi.replace(/[^a-zA-Z0-9]/g, '_') : `paper${i + 1}`;
+      const authors = p.authors.join(' and ') || 'Unknown';
+      const lines = [
+        `@article{${key},`,
+        `  author  = {${authors}},`,
+        `  title   = {${p.title}},`,
+        p.publication_year ? `  year    = {${p.publication_year}},` : '',
+        p.doi ? `  doi     = {${p.doi}},` : '',
+        `  url     = {${p.doi ? `https://doi.org/${p.doi}` : p.url}},`,
+        `}`,
+      ].filter(Boolean);
+      return lines.join('\n');
+    });
+    return {
+      content: `% DeepScholar export — ${topic}\n\n` + entries.join('\n\n'),
+      filename: 'deepscholar-export.bib',
+      mime: 'text/plain',
+    };
+  }
+
+  if (format === 'ris') {
+    const entries = papers.map((p) => {
+      const lines = [
+        'TY  - JOUR',
+        ...p.authors.map((a) => `AU  - ${a}`),
+        `TI  - ${p.title}`,
+        p.publication_year ? `PY  - ${p.publication_year}` : '',
+        p.doi ? `DO  - ${p.doi}` : '',
+        `UR  - ${p.doi ? `https://doi.org/${p.doi}` : p.url}`,
+        'ER  -',
+      ].filter(Boolean);
+      return lines.join('\n');
+    });
+    return {
+      content: entries.join('\n\n'),
+      filename: 'deepscholar-export.ris',
+      mime: 'application/x-research-info-systems',
+    };
+  }
+
+  // TXT
+  const formatted = papers.map((p, i) => formatPaperCitation(p, i + 1, style));
+  return {
+    content: [
+      `Topic: ${topic}`,
+      '',
+      'Expanded Topic:',
+      expandedTopic,
+      '',
+      `Reference style: ${style}`,
+      `Generated references: ${papers.length}`,
+      '',
+      ...formatted,
+    ].join('\n'),
+    filename: 'deepscholar-export.txt',
+    mime: 'text/plain',
+  };
+};
+
 const fetchWispPapers = async (query: string, wisp: WispConfig): Promise<WispPaper[]> => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (wisp.apiKey.trim()) headers['X-API-Key'] = wisp.apiKey;
@@ -137,7 +235,6 @@ const generateSubQueries = (topic: string, expandedTopic: string, count: number)
     if (queries.length >= count) break;
     const phraseLC = phrase.toLowerCase();
     const topicOverlap = [...topicKeywords].some((kw) => phraseLC.includes(kw));
-    // Only use the phrase as-is if it mentions topic keywords; otherwise combine with topic
     const q = topicOverlap ? phrase : `${topic} — ${phrase.split(',')[0].trim()}`;
     if (q.length > 10 && !queries.includes(q)) queries.push(q);
   }
@@ -145,6 +242,9 @@ const generateSubQueries = (topic: string, expandedTopic: string, count: number)
   while (queries.length < count) queries.push(topic);
   return queries.slice(0, count);
 };
+
+const formatHistoryDate = (ts: number) =>
+  new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -166,7 +266,11 @@ export function Dashboard() {
   const [expandedTopicDraft, setExpandedTopicDraft] = useState('');
   const [expansionAccepted, setExpansionAccepted] = useState(false);
   const [isExpanding, setIsExpanding] = useState(false);
-  const [references, setReferences] = useState<string[]>([]);
+
+  const [papers, setPapers] = useState<WispPaper[]>([]);
+  const [sourceCounts, setSourceCounts] = useState<Record<string, number>>({});
+  const [isVerifying, setIsVerifying] = useState(false);
+
   const [lines, setLines] = useState(seedLines);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
@@ -174,9 +278,56 @@ export function Dashboard() {
   const [activeStep, setActiveStep] = useState(0);
   const cancelRef = useRef(false);
 
+  const [clarifyOpen, setClarifyOpen] = useState(false);
+  const [clarifyAnswers, setClarifyAnswers] = useState<ClarifyAnswers>(initialClarify);
+
+  const [history, setHistory] = useState<HistoryEntry[]>(() => {
+    const saved = localStorage.getItem('paper-harvester-history');
+    return saved ? (JSON.parse(saved) as HistoryEntry[]) : [];
+  });
+  const [restoreTopicId, setRestoreTopicId] = useState<string | null>(null);
+
+  // ── Persistence ────────────────────────────────────────────────────────────
+
   useEffect(() => {
     localStorage.setItem('paper-harvester-settings', JSON.stringify(settings));
   }, [settings]);
+
+  // Restore session on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('paper-harvester-session');
+    if (!saved) return;
+    try {
+      const session = JSON.parse(saved) as { papers: WispPaper[]; expandedTopic: string; sourceCounts: Record<string, number> };
+      if (session.papers?.length > 0) {
+        setPapers(session.papers);
+        setSourceCounts(session.sourceCounts ?? {});
+        if (session.expandedTopic) {
+          setExpandedTopic(session.expandedTopic);
+          setExpandedTopicDraft(session.expandedTopic);
+          setExpansionAccepted(true);
+        }
+      }
+    } catch {
+      // corrupt session — ignore
+    }
+  }, []);
+
+  // Save session whenever papers change
+  useEffect(() => {
+    if (papers.length === 0) return;
+    if (papers.length > 8000) return; // guard localStorage limit
+    try {
+      localStorage.setItem(
+        'paper-harvester-session',
+        JSON.stringify({ papers, expandedTopic, sourceCounts }),
+      );
+    } catch {
+      // storage full — ignore
+    }
+  }, [papers, expandedTopic, sourceCounts]);
+
+  // ── Derived ────────────────────────────────────────────────────────────────
 
   const stamp = () => new Date().toLocaleTimeString('en-US', { hour12: false });
 
@@ -193,17 +344,24 @@ export function Dashboard() {
     if (!settings.topic.trim()) return 'Search Focus Topic is required.';
     if (!expandedTopic.trim() || !expansionAccepted) return 'Please process expansion and click Accept before running.';
     if (settings.startYear > settings.endYear) return 'Start year is later than end year.';
-    if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR) return `Year range must be between 1900 and ${CURRENT_YEAR}.`;
+    if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR)
+      return `Year range must be between 1900 and ${CURRENT_YEAR}.`;
     return null;
   }, [expandedTopic, expansionAccepted, settings, wispConfigured]);
 
-  // ── Topic expansion ──────────────────────────────────────────────────────
+  // ── Topic expansion ────────────────────────────────────────────────────────
 
   const processExpansion = async () => {
     if (!settings.topic.trim()) return;
     setIsExpanding(true);
 
-    // 1. Try configured OpenAI-compatible API
+    // Build enriched topic with clarify answers
+    const clarifyContext =
+      clarifyAnswers.focus || clarifyAnswers.domain || clarifyAnswers.recency !== 'Both'
+        ? `\n\nResearch focus: ${clarifyAnswers.focus || 'general overview'}. Recency preference: ${clarifyAnswers.recency} work. Domain/methodology specifics: ${clarifyAnswers.domain || 'none specified'}.`
+        : '';
+    const topicForExpansion = settings.topic.trim() + clarifyContext;
+
     if (apiConfigured) {
       const { baseUrl, apiKey, modelId, nickname } = settings.apiConfig;
       setLines((prev) => [...prev, `[${stamp()}] Calling ${nickname || 'AI API'} for topic expansion…`]);
@@ -217,11 +375,11 @@ export function Dashboard() {
               {
                 role: 'system',
                 content:
-                  'You are a research assistant. Expand the given research topic into a comprehensive deep-research scope covering foundational work, current methods, adjacent terminology, dissenting findings, and actionable follow-up questions. Be concise and structured.',
+                  'You are a research assistant. Expand the given research topic into a comprehensive deep-research scope covering foundational work, current methods, adjacent terminology, dissenting findings, and actionable follow-up questions. Honour any focus, recency, or domain constraints provided. Be concise and structured.',
               },
-              { role: 'user', content: `Expand this research topic: "${settings.topic.trim()}"` },
+              { role: 'user', content: `Expand this research topic: "${topicForExpansion}"` },
             ],
-            max_tokens: 600,
+            max_tokens: 800,
           }),
         });
         if (!res.ok) throw new Error(`API ${res.status}`);
@@ -235,14 +393,13 @@ export function Dashboard() {
         setIsExpanding(false);
         return;
       } catch (err) {
-        setLines((prev) => [...prev, `[${stamp()}] AI API error: ${String(err)} — falling back to local expansion`]);
+        setLines((prev) => [
+          ...prev,
+          `[${stamp()}] AI API error: ${String(err)} — falling back to local expansion`,
+        ]);
       }
     }
 
-    // 2. Local expansion
-    if (wispConfigured) {
-      setLines((prev) => [...prev, `[${stamp()}] Generating expansion locally (WISP used for paper search, not expansion)`]);
-    }
     const next = expandTopicLocally(settings.topic);
     setExpandedTopic(next);
     setExpandedTopicDraft(next);
@@ -251,10 +408,91 @@ export function Dashboard() {
     setIsExpanding(false);
   };
 
-  // ── Harvest ──────────────────────────────────────────────────────────────
+  // ── AI verification ────────────────────────────────────────────────────────
+
+  const runAiVerification = async (papersToVerify: WispPaper[]): Promise<WispPaper[]> => {
+    if (!apiConfigured) {
+      setLines((prev) => [...prev, `[${stamp()}] AI verification skipped — no API configured`]);
+      return papersToVerify;
+    }
+
+    setIsVerifying(true);
+    setLines((prev) => [
+      ...prev,
+      `[${stamp()}] Running AI citation verification across ${papersToVerify.length} papers…`,
+    ]);
+
+    const { baseUrl, apiKey, modelId } = settings.apiConfig;
+    const batchSize = 20;
+    let totalRemoved = 0;
+    const allVerified: WispPaper[] = [];
+
+    for (let i = 0; i < papersToVerify.length; i += batchSize) {
+      if (cancelRef.current) break;
+      const batch = papersToVerify.slice(i, i + batchSize);
+
+      try {
+        const res = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model: modelId || 'gpt-4o',
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are a citation validator. Given JSON papers with index, title, authors, year, doi — return a JSON object {"remove": [indices]} listing only papers that are clearly fabricated (impossible year, nonsensical title, obvious placeholders). Be conservative: only flag obvious fakes. Real papers from databases should be kept.',
+              },
+              {
+                role: 'user',
+                content: JSON.stringify(
+                  batch.map((p, idx) => ({
+                    index: idx,
+                    title: p.title,
+                    authors: p.authors.slice(0, 2),
+                    year: p.publication_year,
+                    doi: p.doi,
+                  })),
+                ),
+              },
+            ],
+            max_tokens: 200,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const content: string = data.choices?.[0]?.message?.content ?? '';
+          let removeIndices: number[] = [];
+          try {
+            const parsed = JSON.parse(content);
+            removeIndices = Array.isArray(parsed.remove) ? parsed.remove : [];
+          } catch {
+            // unparseable — keep all
+          }
+          const removeSet = new Set(removeIndices);
+          const kept = batch.filter((_, idx) => !removeSet.has(idx));
+          totalRemoved += batch.length - kept.length;
+          allVerified.push(...kept);
+        } else {
+          allVerified.push(...batch);
+        }
+      } catch {
+        allVerified.push(...batch);
+      }
+    }
+
+    setLines((prev) => [
+      ...prev,
+      `[${stamp()}] Verification complete — ${allVerified.length} papers kept${totalRemoved > 0 ? `, ${totalRemoved} removed` : ''}`,
+    ]);
+    setIsVerifying(false);
+    return allVerified;
+  };
+
+  // ── Harvest ────────────────────────────────────────────────────────────────
 
   const runHarvest = async () => {
-    // Stop if already running
     if (isRunning) {
       cancelRef.current = true;
       setIsRunning(false);
@@ -269,102 +507,151 @@ export function Dashboard() {
 
     const finalTopic = expandedTopicDraft.trim() || expandedTopic;
     setExpandedTopic(finalTopic);
-    setReferences([]);
+    setPapers([]);
+    setSourceCounts({});
     setActiveStep(0);
     cancelRef.current = false;
     setIsRunning(true);
 
-    if (wispConfigured) {
-      // ── Real WISP academic search ────────────────────────────────────────
-      const passes = settings.searchDepth;
-      const queries = generateSubQueries(settings.topic, finalTopic, passes);
-      const seenDois = new Set<string>();
-      let totalCount = 0;
-      let emptyStreak = 0;
-      const MAX_EMPTY_STREAK = 3;
+    const passes = settings.searchDepth;
+    const queries = generateSubQueries(settings.topic, finalTopic, passes);
+    const seenDois = new Set<string>();
+    const seenTitles = new Set<string>();
+    let totalCount = 0;
+    let emptyStreak = 0;
+    const MAX_EMPTY_STREAK = 3;
+    const allPapers: WispPaper[] = [];
+    const runSourceCounts: Record<string, number> = {};
 
-      setLines((prev) => [...prev, `[${stamp()}] Starting WISP academic search — up to ${passes} passes across OpenAlex, arXiv, Semantic Scholar`]);
+    setLines((prev) => [
+      ...prev,
+      `[${stamp()}] Starting WISP academic search — up to ${passes} passes`,
+    ]);
 
-      for (let i = 0; i < queries.length; i++) {
-        if (cancelRef.current) break;
+    for (let i = 0; i < queries.length; i++) {
+      if (cancelRef.current) break;
 
-        setActiveStep(Math.min(deepResearchProcess.length - 1, Math.floor((i / queries.length) * deepResearchProcess.length)));
+      setActiveStep(
+        Math.min(deepResearchProcess.length - 1, Math.floor((i / queries.length) * deepResearchProcess.length)),
+      );
 
-        try {
-          const papers = await fetchWispPapers(queries[i], settings.wispConfig);
+      try {
+        const fetched = await fetchWispPapers(queries[i], settings.wispConfig);
 
-          const newPapers = papers.filter((p) => {
-            if (!p.doi) return true;
+        // Client-side filters
+        const filtered = fetched.filter((p) => {
+          const yr = p.publication_year;
+          if (yr !== null && yr < settings.startYear) return false;
+          if (yr !== null && yr > settings.endYear) return false;
+          if (!settings.includePreprints && isPreprint(p)) return false;
+          if (settings.onlyOpenAccess && !p.oa_pdf_url) return false;
+          return true;
+        });
+
+        // Dedup by DOI, then title fallback
+        const newPapers = filtered.filter((p) => {
+          if (p.doi) {
             if (seenDois.has(p.doi)) return false;
             seenDois.add(p.doi);
             return true;
-          });
+          }
+          // No DOI — dedup by title
+          const nt = normalizeTitle(p.title);
+          if (seenTitles.has(nt)) return false;
+          seenTitles.add(nt);
+          return true;
+        });
 
-          if (newPapers.length > 0) {
-            emptyStreak = 0;
-            const formatted = newPapers.map((p, j) =>
-              formatPaperCitation(p, totalCount + j + 1, settings.referenceStyle),
-            );
-            totalCount += newPapers.length;
-            setReferences((prev) => [...prev, ...formatted]);
+        if (newPapers.length > 0) {
+          emptyStreak = 0;
 
-            const providers = [...new Set(newPapers.map((p) => p.provider))].join(', ');
+          // Track source counts
+          for (const p of newPapers) {
+            runSourceCounts[p.provider] = (runSourceCounts[p.provider] ?? 0) + 1;
+          }
+          setSourceCounts({ ...runSourceCounts });
+
+          allPapers.push(...newPapers);
+          totalCount += newPapers.length;
+          setPapers((prev) => [...prev, ...newPapers]);
+
+          const providers = [...new Set(newPapers.map((p) => p.provider))].join(', ');
+          setLines((prev) => [
+            ...prev,
+            `[${stamp()}] Pass ${i + 1}/${passes}: +${newPapers.length} papers (${providers})`,
+          ]);
+        } else {
+          emptyStreak += 1;
+          if (emptyStreak >= MAX_EMPTY_STREAK) {
             setLines((prev) => [
               ...prev,
-              `[${stamp()}] Pass ${i + 1}/${passes}: +${newPapers.length} papers (${providers})`,
+              `[${stamp()}] No new references after ${MAX_EMPTY_STREAK} consecutive passes — sources exhausted`,
             ]);
-          } else {
-            emptyStreak += 1;
-            if (emptyStreak >= MAX_EMPTY_STREAK) {
-              setLines((prev) => [...prev, `[${stamp()}] No new references found after ${MAX_EMPTY_STREAK} consecutive passes — sources exhausted`]);
-              break;
-            }
+            break;
           }
-        } catch (err) {
-          setLines((prev) => [...prev, `[${stamp()}] Pass ${i + 1} error: ${String(err)}`]);
         }
+      } catch (err) {
+        setLines((prev) => [...prev, `[${stamp()}] Pass ${i + 1} error: ${String(err)}`]);
       }
+    }
 
-      setActiveStep(deepResearchProcess.length - 1);
-      setIsRunning(false);
-      setLines((prev) => [
-        ...prev,
-        cancelRef.current
-          ? `[${stamp()}] Stopped by user: ${totalCount} unique papers`
-          : `[${stamp()}] Search complete: ${totalCount} unique papers`,
-      ]);
+    setActiveStep(deepResearchProcess.length - 1);
+    setIsRunning(false);
+    setLines((prev) => [
+      ...prev,
+      cancelRef.current
+        ? `[${stamp()}] Stopped by user: ${totalCount} unique papers`
+        : `[${stamp()}] Search complete: ${totalCount} unique papers`,
+    ]);
+
+    if (!cancelRef.current && allPapers.length > 0) {
+      // AI verification pass
+      const verified = await runAiVerification(allPapers);
+      setPapers(verified);
+
+      // Save to history (metadata only)
+      const entry: HistoryEntry = {
+        id: Date.now().toString(),
+        topic: settings.topic,
+        count: verified.length,
+        timestamp: Date.now(),
+      };
+      const newHistory = [entry, ...history].slice(0, 10);
+      setHistory(newHistory);
+      try {
+        localStorage.setItem('paper-harvester-history', JSON.stringify(newHistory));
+      } catch {
+        // storage full
+      }
     }
   };
 
-  // ── Export ───────────────────────────────────────────────────────────────
+  // ── Export ─────────────────────────────────────────────────────────────────
 
-  const exportText = () => {
-    const payload = [
-      `Topic: ${settings.topic}`,
-      '',
-      'Expanded Topic:',
+  const exportPapers = (format: ExportFormat) => {
+    if (papers.length === 0) return;
+    const { content, filename, mime } = buildExport(
+      papers,
+      settings.topic,
       expandedTopicDraft || expandedTopic,
-      '',
-      `Reference style: ${settings.referenceStyle}`,
-      `Generated references: ${references.length}`,
-      '',
-      ...references,
-    ].join('\n');
-
-    const blob = new Blob([payload], { type: 'text/plain' });
+      settings.referenceStyle,
+      format,
+    );
+    const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'deepscholar-export.txt';
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  // ── Main cards ────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   const cards = useMemo(
     () => (
       <div className="space-y-4">
+        {/* Research Topic */}
         <GlassCard className="p-5">
           <h2 className="mb-3 text-base font-semibold text-white">Research Topic</h2>
           <input
@@ -376,18 +663,85 @@ export function Dashboard() {
               setExpandedTopic('');
               setExpandedTopicDraft('');
               setExpansionAccepted(false);
+              setClarifyOpen(false);
+              setClarifyAnswers(initialClarify);
             }}
             className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/40 focus:outline-none"
             placeholder="e.g. foundation models for protein design"
           />
-          <button
-            type="button"
-            onClick={processExpansion}
-            disabled={!settings.topic.trim() || isExpanding}
-            className="mt-3 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {isExpanding ? 'Processing…' : 'Process Expansion'}
-          </button>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={processExpansion}
+              disabled={!settings.topic.trim() || isExpanding}
+              className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isExpanding ? 'Processing…' : 'Process Expansion'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setClarifyOpen((v) => !v)}
+              disabled={!settings.topic.trim()}
+              className={`rounded-lg border px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                clarifyOpen
+                  ? 'border-violet-400/40 bg-violet-500/10 text-violet-300'
+                  : 'border-white/15 bg-white/5 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Clarify Search
+            </button>
+          </div>
+
+          {/* Clarify questions */}
+          {clarifyOpen && (
+            <div className="mt-3 space-y-3 rounded-lg border border-white/10 bg-slate-900/40 p-4">
+              <p className="text-xs font-medium text-slate-400">
+                Answer any or all to focus the search — all optional.
+              </p>
+              <div>
+                <label className="mb-1 block text-xs text-slate-500">
+                  What aspect are you primarily researching?
+                </label>
+                <input
+                  value={clarifyAnswers.focus}
+                  onChange={(e) => setClarifyAnswers((a) => ({ ...a, focus: e.target.value }))}
+                  className="w-full rounded-md border border-white/10 bg-slate-900/60 px-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-cyan-500/40 focus:outline-none"
+                  placeholder="e.g. clinical applications, benchmarking methods…"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-slate-500">Paper focus</label>
+                <div className="flex gap-1.5">
+                  {(['Foundational', 'Recent', 'Both'] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setClarifyAnswers((a) => ({ ...a, recency: opt }))}
+                      className={`rounded-md border px-3 py-1 text-xs transition ${
+                        clarifyAnswers.recency === opt
+                          ? 'border-cyan-400/40 bg-cyan-500/15 text-cyan-300'
+                          : 'border-white/10 text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-slate-500">
+                  Specific methodology, population, or domain? (optional)
+                </label>
+                <input
+                  value={clarifyAnswers.domain}
+                  onChange={(e) => setClarifyAnswers((a) => ({ ...a, domain: e.target.value }))}
+                  className="w-full rounded-md border border-white/10 bg-slate-900/60 px-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-cyan-500/40 focus:outline-none"
+                  placeholder="e.g. NLP, paediatric patients, drug discovery…"
+                />
+              </div>
+            </div>
+          )}
 
           {expandedTopic && (
             <div className="mt-4 space-y-3">
@@ -428,12 +782,13 @@ export function Dashboard() {
           )}
         </GlassCard>
 
+        {/* Research Steps */}
         <GlassCard className="p-5">
           <h2 className="mb-3 text-base font-semibold text-white">Research Steps</h2>
           <div className="space-y-1.5">
             {deepResearchProcess.map((item, i) => {
               const isActive = isRunning && i === activeStep;
-              const isDone = !isRunning && references.length > 0 && i <= activeStep;
+              const isDone = !isRunning && papers.length > 0 && i <= activeStep;
               return (
                 <div
                   key={item}
@@ -453,7 +808,12 @@ export function Dashboard() {
           </div>
         </GlassCard>
 
-        <ReferenceResultsCard references={references} referenceStyle={settings.referenceStyle} isRunning={isRunning} />
+        <ReferenceResultsCard
+          papers={papers}
+          referenceStyle={settings.referenceStyle}
+          isRunning={isRunning}
+          isVerifying={isVerifying}
+        />
 
         {validationError && (
           <ErrorBox
@@ -462,29 +822,39 @@ export function Dashboard() {
               if (!settings.topic.trim()) return;
               if (!expandedTopic.trim()) { processExpansion(); return; }
               if (!expansionAccepted) { setExpansionAccepted(true); return; }
-              if (settings.startYear > settings.endYear) { setSettings((s) => ({ ...s, endYear: s.startYear })); return; }
-              if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR) {
-                setSettings((s) => ({ ...s, startYear: initialSettings.startYear, endYear: initialSettings.endYear }));
+              if (settings.startYear > settings.endYear) {
+                setSettings((s) => ({ ...s, endYear: s.startYear }));
                 return;
               }
-              if (settings.externalAiEnabled && !apiConfigured && !wispConfigured) {
-                setSettingsMenuOpen(true);
+              if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR) {
+                setSettings((s) => ({
+                  ...s,
+                  startYear: initialSettings.startYear,
+                  endYear: initialSettings.endYear,
+                }));
+                return;
               }
+              if (!wispConfigured) setSettingsMenuOpen(true);
             }}
           />
         )}
 
         <ActionCard
           onRun={runHarvest}
-          onExportText={exportText}
+          onExport={exportPapers}
           estimatedPapers={displayEstimate}
           disableRun={Boolean(validationError)}
           isRunning={isRunning}
+          hasPapers={papers.length > 0}
         />
       </div>
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeStep, apiConfigured, displayEstimate, expandedTopic, expandedTopicDraft, expansionAccepted, isExpanding, isRunning, references, settings, validationError, wispConfigured],
+    [
+      activeStep, apiConfigured, clarifyAnswers, clarifyOpen, displayEstimate,
+      expandedTopic, expandedTopicDraft, expansionAccepted, isExpanding,
+      isRunning, isVerifying, papers, settings, validationError, wispConfigured,
+    ],
   );
 
   return (
@@ -494,7 +864,11 @@ export function Dashboard() {
         <div className="relative grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,800px)_340px] xl:items-start">
           {cards}
           <aside className="hidden xl:sticky xl:top-24 xl:block">
-            <CacheStats gatheredCount={references.length} targetCount={displayEstimate} />
+            <CacheStats
+              gatheredCount={papers.length}
+              targetCount={displayEstimate}
+              sourceCounts={sourceCounts}
+            />
           </aside>
         </div>
 
@@ -502,6 +876,7 @@ export function Dashboard() {
           <ConsoleLog lines={lines} />
         </div>
 
+        {/* Mobile bottom bar */}
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#060913]/90 p-3 backdrop-blur-xl xl:hidden">
           <button
             onClick={runHarvest}
@@ -515,23 +890,27 @@ export function Dashboard() {
           </button>
         </div>
 
+        {/* Mobile sheet */}
         <div
           className={`fixed inset-x-0 bottom-20 z-30 max-h-[70vh] overflow-auto rounded-t-2xl border border-white/10 bg-[#060913]/95 p-3 transition-transform xl:hidden ${sheetOpen ? 'translate-y-0' : 'translate-y-[110%]'}`}
         >
           <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-slate-600" />
           <div className="space-y-3">
-            <CacheStats gatheredCount={references.length} targetCount={displayEstimate} />
+            <CacheStats gatheredCount={papers.length} targetCount={displayEstimate} sourceCounts={sourceCounts} />
             <ConsoleLog lines={lines} />
           </div>
         </div>
 
+        {/* Settings panel */}
         {settingsMenuOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={() => setSettingsMenuOpen(false)}>
+          <div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            onClick={() => setSettingsMenuOpen(false)}
+          >
             <div
               className="absolute left-0 top-0 h-full w-full max-w-sm overflow-y-auto border-r border-white/10 bg-[#060913] shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#060913]/95 px-4 py-3 backdrop-blur">
                 <h2 className="text-sm font-semibold text-white">Settings</h2>
                 <button
@@ -586,6 +965,77 @@ export function Dashboard() {
                   apiConfigured={apiConfigured}
                   apiNickname={settings.apiConfig.nickname}
                 />
+
+                {/* History */}
+                <p className="px-0.5 pt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">History</p>
+                {history.length === 0 ? (
+                  <p className="px-0.5 text-xs text-slate-600">No completed runs yet.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {history.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+                      >
+                        <div className="min-w-0 flex-1">
+                          {restoreTopicId === entry.id ? (
+                            <div className="space-y-1">
+                              <p className="text-xs text-slate-300">Re-search this topic?</p>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSettings((s) => ({ ...s, topic: entry.topic }));
+                                    setExpandedTopic('');
+                                    setExpandedTopicDraft('');
+                                    setExpansionAccepted(false);
+                                    setPapers([]);
+                                    setSourceCounts({});
+                                    setRestoreTopicId(null);
+                                    setSettingsMenuOpen(false);
+                                  }}
+                                  className="rounded border border-cyan-400/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] text-cyan-300"
+                                >
+                                  Yes
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setRestoreTopicId(null)}
+                                  className="rounded border border-white/10 px-2 py-0.5 text-[10px] text-slate-500"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="w-full text-left"
+                              onClick={() => setRestoreTopicId(entry.id)}
+                            >
+                              <p className="truncate text-xs text-slate-200">{entry.topic}</p>
+                              <p className="text-[10px] text-slate-500">
+                                {entry.count.toLocaleString()} refs · {formatHistoryDate(entry.timestamp)}
+                              </p>
+                            </button>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = history.filter((h) => h.id !== entry.id);
+                            setHistory(updated);
+                            localStorage.setItem('paper-harvester-history', JSON.stringify(updated));
+                          }}
+                          className="ml-2 shrink-0 text-slate-600 transition hover:text-red-400"
+                          aria-label="Delete"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
