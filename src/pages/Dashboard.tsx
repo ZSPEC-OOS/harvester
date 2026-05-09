@@ -911,7 +911,7 @@ export function Dashboard() {
     <div className="min-h-screen bg-transparent text-white">
       <TopBar onMenuClick={() => setSettingsMenuOpen(true)} isRunning={isRunning} wispConfigured={wispConfigured} />
       <Container>
-        <div className="relative grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,800px)_340px] xl:items-start">
+        <div className="relative grid grid-cols-1 gap-4 pb-16 xl:grid-cols-[minmax(0,800px)_340px] xl:items-start xl:pb-0">
           {cards}
           <aside className="hidden xl:sticky xl:top-24 xl:block">
             <CacheStats
@@ -926,16 +926,12 @@ export function Dashboard() {
           <ConsoleLog lines={lines} />
         </div>
 
-        {/* Mobile bottom bar */}
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#060913]/90 p-3 backdrop-blur-xl xl:hidden">
+        {/* Mobile bottom bar — Progress + Log toggle only; Run is in ActionCard */}
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#060913]/95 px-4 py-2 backdrop-blur-xl xl:hidden">
           <button
-            onClick={runHarvest}
-            disabled={Boolean(validationError)}
-            className="w-full rounded-xl border border-violet-300/40 bg-gradient-to-r from-violet-500/80 to-indigo-500/80 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={() => setSheetOpen((v) => !v)}
+            className="w-full text-center text-sm text-slate-400 hover:text-slate-200 transition"
           >
-            {isRunning ? 'Stop DeepScholar' : 'Run DeepScholar'}
-          </button>
-          <button onClick={() => setSheetOpen((v) => !v)} className="mt-2 w-full text-center text-sm text-slate-300">
             {sheetOpen ? 'Hide' : 'Show'} Progress + Log
           </button>
         </div>
