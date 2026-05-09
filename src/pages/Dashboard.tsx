@@ -364,6 +364,44 @@ const generateSubQueries = (topic: string, expandedTopic: string, count: number)
   return queries.slice(0, count);
 };
 
+const generateSubQueriesWithAi = async (
+  topic: string,
+  expandedTopic: string,
+  count: number,
+  api: ApiConfig,
+): Promise<string[] | null> => {
+  const { baseUrl, apiKey, modelId } = api;
+  const res = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: modelId || 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You optimize literature discovery. Return ONLY valid JSON with shape {"queries":["..."]}. Create highly targeted sub-queries for database APIs. Keep each query under 18 words and centered on relevance to the expanded topic.',
+        },
+        {
+          role: 'user',
+          content: `Topic: ${topic}\nExpanded topic:\n${expandedTopic}\nNeed exactly ${count} deduplicated sub-queries.`,
+        },
+      ],
+      max_tokens: 700,
+    }),
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const data = await res.json();
+  const raw: string = data.choices?.[0]?.message?.content ?? '';
+  const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+  const queries = Array.isArray(parsed.queries) ? parsed.queries : [];
+  const clean: string[] = queries
+    .map((q: unknown) => (typeof q === 'string' ? q.trim() : ''))
+    .filter((q: string): q is string => typeof q === 'string' && q.length > 3);
+  const deduped: string[] = [...new Set(clean)];
+  return deduped.length > 0 ? deduped.slice(0, count) : null;
+};
+
 const formatHistoryDate = (ts: number) =>
   new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
@@ -609,7 +647,7 @@ export function Dashboard() {
     setIsVerifying(true);
     setLines((prev) => [
       ...prev,
-      `[${stamp()}] Running AI citation verification across ${papersToVerify.length} papers…`,
+      `[${stamp()}] Running AI relevance filter across ${papersToVerify.length} papers…`,
     ]);
 
     const { baseUrl, apiKey, modelId } = settings.apiConfig;
@@ -631,7 +669,10 @@ export function Dashboard() {
               {
                 role: 'system',
                 content:
-                  'You are a citation validator. Given JSON papers with index, title, authors, year, doi — return a JSON object {"remove": [indices]} listing only papers that are clearly fabricated (impossible year, nonsensical title, obvious placeholders). Be conservative: only flag obvious fakes. Real papers from databases should be kept.',
+                  `You are a research relevance filter. Keep papers that are genuinely relevant to the expanded topic below, and remove papers that are off-topic, weakly related, or clearly low-signal.
+Expanded topic:
+${expandedTopicDraft.trim() || expandedTopic}
+Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncertain.`,
               },
               {
                 role: 'user',
@@ -674,7 +715,7 @@ export function Dashboard() {
 
     setLines((prev) => [
       ...prev,
-      `[${stamp()}] Verification complete — ${allVerified.length} papers kept${totalRemoved > 0 ? `, ${totalRemoved} removed` : ''}`,
+      `[${stamp()}] Relevance filtering complete — ${allVerified.length} papers kept${totalRemoved > 0 ? `, ${totalRemoved} removed` : ''}`,
     ]);
     setIsVerifying(false);
     return allVerified;
@@ -704,7 +745,24 @@ export function Dashboard() {
     setIsRunning(true);
 
     const passes = settings.searchDepth;
-    const queries = generateSubQueries(settings.topic, finalTopic, passes);
+    let queries = generateSubQueries(settings.topic, finalTopic, passes);
+    if (apiConfigured) {
+      try {
+        const aiQueries = await generateSubQueriesWithAi(
+          settings.topic,
+          finalTopic,
+          passes,
+          settings.apiConfig,
+        );
+        if (aiQueries && aiQueries.length > 0) {
+          queries = aiQueries;
+          while (queries.length < passes) queries.push(settings.topic);
+          setLines((prev) => [...prev, `[${stamp()}] AI generated targeted sub-queries for parallel source retrieval`]);
+        }
+      } catch (err) {
+        setLines((prev) => [...prev, `[${stamp()}] AI sub-query generation failed (${String(err)}) — using local query planner`]);
+      }
+    }
     const seenDois = new Set<string>();
     const seenTitles = new Set<string>();
     let totalCount = 0;
