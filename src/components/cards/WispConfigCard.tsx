@@ -16,21 +16,37 @@ export function WispConfigCard({ config, onChange }: Props) {
   const [showKey, setShowKey] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<'ok' | 'fail' | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
 
   const set = (field: keyof WispConfig) => (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange({ ...config, [field]: e.target.value });
     setTestResult(null);
+    setTestError(null);
   };
 
   const testConnection = async () => {
     if (!config.baseUrl.trim()) return;
     setTesting(true);
     setTestResult(null);
+    setTestError(null);
     try {
-      const res = await fetch(`${config.baseUrl.replace(/\/$/, '')}/health`);
-      setTestResult(res.ok ? 'ok' : 'fail');
-    } catch {
+      const headers: Record<string, string> = {};
+      if (config.apiKey.trim()) headers['X-API-Key'] = config.apiKey.trim();
+      const res = await fetch(`${config.baseUrl.replace(/\/$/, '')}/health`, { headers });
+      if (res.ok) {
+        setTestResult('ok');
+      } else {
+        setTestResult('fail');
+        setTestError(`Server returned ${res.status}`);
+      }
+    } catch (err) {
       setTestResult('fail');
+      const msg = String(err);
+      if (msg.includes('fetch') || msg.includes('Failed') || msg.includes('Network')) {
+        setTestError('Network error — check URL and CORS on your WISP server');
+      } else {
+        setTestError(msg);
+      }
     } finally {
       setTesting(false);
     }
@@ -105,7 +121,9 @@ export function WispConfigCard({ config, onChange }: Props) {
             {testing ? 'Testing…' : 'Test Connection'}
           </button>
           {testResult === 'ok' && <span className="text-xs text-emerald-400">Connected ✓</span>}
-          {testResult === 'fail' && <span className="text-xs text-red-400">Failed — check URL / CORS</span>}
+          {testResult === 'fail' && (
+            <span className="text-xs text-red-400">{testError ?? 'Failed'}</span>
+          )}
         </div>
       </div>
     </GlassCard>
