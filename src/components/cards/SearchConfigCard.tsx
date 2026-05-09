@@ -1,3 +1,4 @@
+import { SlidersHorizontal } from 'lucide-react';
 import { Checkbox } from '../ui/Checkbox';
 import { GlassCard } from '../ui/GlassCard';
 import { Slider } from '../ui/Slider';
@@ -21,34 +22,47 @@ type Props = {
   setReferenceStyle: (v: string) => void;
 };
 
+const inputCls = 'w-full rounded-lg px-3 py-2 text-sm transition input-recessed';
+const labelCls = 'mb-1.5 block text-[11px] font-medium tracking-wide uppercase' as const;
+
 export function SearchConfigCard(props: Props) {
   return (
     <GlassCard className="p-4">
-      <h3 className="mb-3 text-sm font-semibold text-white">Search Configuration</h3>
+      <div className="mb-4 flex items-center gap-2.5">
+        <span
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+          style={{ background: 'rgba(33,85,214,0.14)', color: '#6B9EFF' }}
+        >
+          <SlidersHorizontal size={13} />
+        </span>
+        <h3 className="text-sm font-semibold" style={{ color: '#F3F6FB' }}>
+          Search Configuration
+        </h3>
+      </div>
 
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="topic">
+          <label className={labelCls} htmlFor="topic" style={{ color: '#64748B' }}>
             Topic
           </label>
           <input
             id="topic"
             value={props.topic}
             onChange={(e) => props.setTopic(e.target.value)}
-            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
+            className={inputCls}
             placeholder="e.g. foundation models for protein design"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="reference-style">
+          <label className={labelCls} htmlFor="reference-style" style={{ color: '#64748B' }}>
             Citation Style
           </label>
           <select
             id="reference-style"
             value={props.referenceStyle}
             onChange={(e) => props.setReferenceStyle(e.target.value)}
-            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
+            className={`${inputCls} select input-recessed`}
           >
             <option value="apa">APA</option>
             <option value="mla">MLA</option>
@@ -60,7 +74,7 @@ export function SearchConfigCard(props: Props) {
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="start-year">
+            <label className={labelCls} htmlFor="start-year" style={{ color: '#64748B' }}>
               Start Year
             </label>
             <input
@@ -70,11 +84,11 @@ export function SearchConfigCard(props: Props) {
               max={props.endYear}
               value={props.startYear}
               onChange={(e) => props.setStartYear(Number(e.target.value))}
-              className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
+              className={inputCls}
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="end-year">
+            <label className={labelCls} htmlFor="end-year" style={{ color: '#64748B' }}>
               End Year
             </label>
             <input
@@ -84,29 +98,33 @@ export function SearchConfigCard(props: Props) {
               max={new Date().getFullYear()}
               value={props.endYear}
               onChange={(e) => props.setEndYear(Number(e.target.value))}
-              className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
+              className={inputCls}
             />
           </div>
         </div>
 
         <div>
-          <div className="mb-1.5 flex items-center justify-between">
-            <label className="text-xs font-medium text-slate-400" htmlFor="depth">
+          <div className="mb-2 flex items-center justify-between">
+            <label className={labelCls} htmlFor="depth" style={{ color: '#64748B' }}>
               Search Breadth
             </label>
-            <span className="text-xs text-slate-300">{props.searchDepth} passes</span>
+            <span className="text-xs font-medium" style={{ color: '#94A3B8' }}>
+              {props.searchDepth} passes
+            </span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-2 text-[11px]" style={{ color: '#3D5070' }}>
             <span>1</span>
             <Slider id="depth" value={props.searchDepth} onChange={props.setSearchDepth} min={1} max={500} />
             <span>500</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 pt-0.5">
+        <div
+          className="grid grid-cols-3 gap-2 rounded-lg pt-0.5"
+        >
           <Checkbox id="include-preprints" checked={props.includePreprints} onChange={props.setIncludePreprints} label="Preprints" />
-          <Checkbox id="exclude-patents" checked={props.excludePatents} onChange={props.setExcludePatents} label="No patents" />
-          <Checkbox id="only-oa" checked={props.onlyOpenAccess} onChange={props.setOnlyOpenAccess} label="Open access" />
+          <Checkbox id="exclude-patents"   checked={props.excludePatents}   onChange={props.setExcludePatents}   label="No patents" />
+          <Checkbox id="only-oa"           checked={props.onlyOpenAccess}   onChange={props.setOnlyOpenAccess}   label="Open access" />
         </div>
       </div>
     </GlassCard>

@@ -936,7 +936,12 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
       <div className="space-y-4">
         {/* Research Topic */}
         <GlassCard className="p-5">
-          <h2 className="mb-3 text-base font-semibold text-white">Research Topic</h2>
+          <h2
+            className="mb-3 text-base font-semibold"
+            style={{ color: '#F3F6FB' }}
+          >
+            Research Topic
+          </h2>
           <input
             id="main-topic"
             value={settings.topic}
@@ -950,7 +955,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
               setClarifyAnswers([]);
               setClarifyPhase('idle');
             }}
-            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/40 focus:outline-none"
+            className="w-full rounded-lg px-4 py-3 text-sm transition input-recessed"
             placeholder="e.g. foundation models for protein design"
           />
 
@@ -960,7 +965,12 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                 type="button"
                 onClick={processExpansion}
                 disabled={!settings.topic.trim() || isExpanding || clarifyPhase === 'loading'}
-                className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-35"
+                style={{
+                  background: 'linear-gradient(135deg, #2155D6 0%, #26BFA6 100%)',
+                  border: '1px solid rgba(38,191,166,0.30)',
+                  boxShadow: '0 4px 20px rgba(33,85,214,0.32), inset 0 1px 0 rgba(255,255,255,0.08)',
+                }}
               >
                 {clarifyPhase === 'loading' ? 'Generating questions…' : isExpanding ? 'Processing…' : 'Process Expansion'}
               </button>
@@ -969,13 +979,24 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
 
           {/* AI-generated topic-specific clarifying questions */}
           {clarifyPhase === 'pending' && clarifyQuestions.length > 0 && (
-            <div className="mt-3 space-y-3 rounded-lg border border-violet-500/20 bg-slate-900/40 p-4">
-              <p className="text-xs font-medium text-violet-300/80">
+            <div
+              className="mt-3 space-y-3 rounded-lg p-4"
+              style={{
+                background: 'rgba(3,8,20,0.55)',
+                border: '1px solid rgba(33,85,214,0.20)',
+              }}
+            >
+              <p className="text-xs font-medium" style={{ color: '#93B4FF' }}>
                 Answer to sharpen the search — all optional, skip any you don't need.
               </p>
               {clarifyQuestions.map((q, i) => (
                 <div key={i}>
-                  <label className="mb-1 block text-xs text-slate-400">{q.question}</label>
+                  <label
+                    className="mb-1.5 block text-[11px] uppercase tracking-wide"
+                    style={{ color: '#64748B' }}
+                  >
+                    {q.question}
+                  </label>
                   <input
                     value={clarifyAnswers[i] ?? ''}
                     onChange={(e) => {
@@ -983,7 +1004,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                       next[i] = e.target.value;
                       setClarifyAnswers(next);
                     }}
-                    className="w-full rounded-md border border-white/10 bg-slate-900/60 px-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-cyan-500/40 focus:outline-none"
+                    className="w-full rounded-lg px-3 py-2 text-xs transition input-recessed"
                     placeholder={q.placeholder}
                   />
                 </div>
@@ -993,7 +1014,12 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                   type="button"
                   onClick={() => runExpansion()}
                   disabled={isExpanding}
-                  className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-35"
+                  style={{
+                    background: 'linear-gradient(135deg, #2155D6 0%, #26BFA6 100%)',
+                    border: '1px solid rgba(38,191,166,0.30)',
+                    boxShadow: '0 4px 16px rgba(33,85,214,0.28)',
+                  }}
                 >
                   {isExpanding ? 'Processing…' : 'Continue with Expansion'}
                 </button>
@@ -1001,7 +1027,11 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                   type="button"
                   onClick={() => runExpansion([], [])}
                   disabled={isExpanding}
-                  className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-500 transition hover:text-slate-300 disabled:opacity-40"
+                  className="rounded-lg px-4 py-2 text-sm transition disabled:opacity-40"
+                  style={{
+                    border: '1px solid rgba(120,140,180,0.14)',
+                    color: '#64748B',
+                  }}
                 >
                   Skip
                 </button>
@@ -1012,22 +1042,40 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
           {expandedTopic && (
             <div className="mt-4 space-y-3">
               <div>
-                <p className="mb-1.5 text-xs font-medium text-slate-400">Expanded Scope</p>
+                <p
+                  className="mb-1.5 text-[11px] font-medium uppercase tracking-wide"
+                  style={{ color: '#64748B' }}
+                >
+                  Expanded Scope
+                </p>
                 <textarea
                   value={expandedTopic}
                   readOnly
-                  className="min-h-[110px] w-full rounded-lg border border-white/10 bg-slate-950/60 px-4 py-3 text-xs leading-relaxed text-slate-300"
+                  className="min-h-[110px] w-full rounded-lg px-4 py-3 text-xs leading-relaxed"
+                  style={{
+                    background: 'rgba(2,6,18,0.72)',
+                    border: '1px solid rgba(120,140,180,0.09)',
+                    color: '#94A3B8',
+                    boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.4)',
+                    resize: 'none',
+                  }}
                 />
               </div>
               <div>
-                <p className="mb-1.5 text-xs font-medium text-slate-400">Refine (optional)</p>
+                <p
+                  className="mb-1.5 text-[11px] font-medium uppercase tracking-wide"
+                  style={{ color: '#64748B' }}
+                >
+                  Refine (optional)
+                </p>
                 <textarea
                   value={expandedTopicDraft}
                   onChange={(e) => {
                     setExpandedTopicDraft(e.target.value);
                     setExpansionAccepted(false);
                   }}
-                  className="min-h-[110px] w-full rounded-lg border border-white/15 bg-slate-900/60 px-4 py-3 text-xs leading-relaxed text-slate-100 focus:border-cyan-500/40 focus:outline-none"
+                  className="min-h-[110px] w-full rounded-lg px-4 py-3 text-xs leading-relaxed transition input-recessed"
+                  style={{ color: '#E8EDF5' }}
                 />
               </div>
               <button
@@ -1036,11 +1084,21 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                   setExpandedTopic(expandedTopicDraft.trim() || expandedTopic);
                   setExpansionAccepted(true);
                 }}
-                className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
+                className="rounded-lg px-4 py-2 text-sm font-medium transition"
+                style={
                   expansionAccepted
-                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-                    : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
-                }`}
+                    ? {
+                        background: 'rgba(16,185,129,0.10)',
+                        border: '1px solid rgba(16,185,129,0.30)',
+                        color: '#6EE7B7',
+                        boxShadow: '0 0 12px rgba(16,185,129,0.12)',
+                      }
+                    : {
+                        background: 'rgba(16,185,129,0.07)',
+                        border: '1px solid rgba(16,185,129,0.22)',
+                        color: '#6EE7B7',
+                      }
+                }
               >
                 {expansionAccepted ? 'Accepted ✓' : 'Accept & Confirm'}
               </button>
@@ -1050,22 +1108,39 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
 
         {/* Research Steps */}
         <GlassCard className="p-5">
-          <h2 className="mb-3 text-base font-semibold text-white">Research Steps</h2>
-          <div className="space-y-1.5">
+          <h2
+            className="mb-3 text-base font-semibold"
+            style={{ color: '#F3F6FB' }}
+          >
+            Research Steps
+          </h2>
+          <div className="space-y-1">
             {deepResearchProcess.map((item, i) => {
               const isActive = isRunning && i === activeStep;
               const isDone = !isRunning && papers.length > 0 && i <= activeStep;
               return (
                 <div
                   key={item}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    isActive ? 'bg-cyan-500/10 text-white' : 'text-slate-400'
-                  }`}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all"
+                  style={
+                    isActive
+                      ? {
+                          background: 'rgba(33,85,214,0.10)',
+                          color: '#E8EDF5',
+                          boxShadow: 'inset 0 0 0 1px rgba(33,85,214,0.18)',
+                        }
+                      : { color: '#475569' }
+                  }
                 >
                   <span
-                    className={`h-2 w-2 shrink-0 rounded-full ${
-                      isActive ? 'animate-pulse bg-cyan-400' : isDone ? 'bg-emerald-400' : 'bg-slate-600'
-                    }`}
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${isActive ? 'animate-pulse' : ''}`}
+                    style={{
+                      background: isActive
+                        ? '#6B9EFF'
+                        : isDone
+                          ? '#6EE7B7'
+                          : 'rgba(100,116,139,0.4)',
+                    }}
                   />
                   {item}
                 </div>
@@ -1142,11 +1217,19 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
           <ConsoleLog lines={lines} />
         </div>
 
-        {/* Mobile bottom bar — Progress + Log toggle only; Run is in ActionCard */}
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#060913]/95 px-4 py-2 backdrop-blur-xl xl:hidden">
+        {/* Mobile bottom bar */}
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 px-4 py-2.5 backdrop-blur-xl xl:hidden"
+          style={{
+            background: 'rgba(5,8,22,0.97)',
+            borderTop: '1px solid rgba(120,140,180,0.09)',
+            boxShadow: '0 -8px 32px rgba(0,0,0,0.45)',
+          }}
+        >
           <button
             onClick={() => setSheetOpen((v) => !v)}
-            className="w-full text-center text-sm text-slate-400 hover:text-slate-200 transition"
+            className="w-full text-center text-xs font-medium transition"
+            style={{ color: sheetOpen ? '#93B4FF' : '#475569' }}
           >
             {sheetOpen ? 'Hide' : 'Show'} Progress + Log
           </button>
@@ -1154,9 +1237,19 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
 
         {/* Mobile sheet */}
         <div
-          className={`fixed inset-x-0 bottom-20 z-30 max-h-[70vh] overflow-auto rounded-t-2xl border border-white/10 bg-[#060913]/95 p-3 transition-transform xl:hidden ${sheetOpen ? 'translate-y-0' : 'translate-y-[110%]'}`}
+          className={`fixed inset-x-0 bottom-[42px] z-30 max-h-[70vh] overflow-auto rounded-t-2xl p-3 transition-transform xl:hidden ${sheetOpen ? 'translate-y-0' : 'translate-y-[110%]'}`}
+          style={{
+            background: 'rgba(5,10,24,0.98)',
+            border: '1px solid rgba(120,140,180,0.12)',
+            borderBottom: 'none',
+            boxShadow: '0 -16px 48px rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(20px)',
+          }}
         >
-          <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-slate-600" />
+          <div
+            className="mx-auto mb-3 h-1 w-12 rounded-full"
+            style={{ background: 'rgba(120,140,180,0.25)' }}
+          />
           <div className="space-y-3">
             <CacheStats gatheredCount={papers.length} targetCount={displayEstimate} sourceCounts={sourceCounts} />
             <ConsoleLog lines={lines} />
@@ -1166,19 +1259,37 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
         {/* Settings panel */}
         {settingsMenuOpen && (
           <div
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 backdrop-blur-sm"
+            style={{ background: 'rgba(2,5,16,0.75)' }}
             onClick={() => setSettingsMenuOpen(false)}
           >
             <div
-              className="absolute left-0 top-0 h-full w-full max-w-sm overflow-y-auto border-r border-white/10 bg-[#060913] shadow-2xl"
+              className="absolute left-0 top-0 h-full w-full max-w-sm overflow-y-auto shadow-2xl"
+              style={{
+                background: '#050B1A',
+                borderRight: '1px solid rgba(120,140,180,0.12)',
+              }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#060913]/95 px-4 py-3 backdrop-blur">
-                <h2 className="text-sm font-semibold text-white">Settings</h2>
+              <div
+                className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 backdrop-blur"
+                style={{
+                  background: 'rgba(5,11,26,0.96)',
+                  borderBottom: '1px solid rgba(120,140,180,0.10)',
+                }}
+              >
+                <h2 className="text-sm font-semibold" style={{ color: '#F3F6FB' }}>
+                  Settings
+                </h2>
                 <button
                   type="button"
                   onClick={() => setSettingsMenuOpen(false)}
-                  className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-slate-300 transition hover:bg-white/10"
+                  className="rounded-md px-2.5 py-1 text-xs transition"
+                  style={{
+                    background: 'rgba(33,85,214,0.08)',
+                    border: '1px solid rgba(120,140,180,0.16)',
+                    color: '#94A3B8',
+                  }}
                 >
                   Close
                 </button>
@@ -1186,7 +1297,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
 
               <div className="space-y-3 p-4 pb-10">
                 {/* Backends */}
-                <p className="px-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Backends</p>
+                <p className="section-label px-0.5">Backends</p>
                 <WispConfigCard
                   config={settings.wispConfig}
                   onChange={(wispConfig) => setSettings((s) => ({ ...s, wispConfig }))}
@@ -1197,7 +1308,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                 />
 
                 {/* Search */}
-                <p className="px-0.5 pt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Search</p>
+                <p className="section-label px-0.5 pt-1">Search</p>
                 <SearchConfigCard
                   topic={settings.topic}
                   setTopic={(topic) => setSettings((s) => ({ ...s, topic }))}
@@ -1219,7 +1330,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                 <ActiveSourcesCard estimatedPapers={displayEstimate} />
 
                 {/* Output */}
-                <p className="px-0.5 pt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Output</p>
+                <p className="section-label px-0.5 pt-1">Output</p>
                 <OutputCard
                   expandedTopic={expandedTopic}
                   externalAiEnabled={settings.externalAiEnabled}
@@ -1229,20 +1340,28 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                 />
 
                 {/* History */}
-                <p className="px-0.5 pt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">History</p>
+                <p className="section-label px-0.5 pt-1">History</p>
                 {history.length === 0 ? (
-                  <p className="px-0.5 text-xs text-slate-600">No completed runs yet.</p>
+                  <p className="px-0.5 text-xs" style={{ color: '#334155' }}>
+                    No completed runs yet.
+                  </p>
                 ) : (
                   <div className="space-y-1.5">
                     {history.map((entry) => (
                       <div
                         key={entry.id}
-                        className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+                        className="flex items-center justify-between rounded-lg px-3 py-2"
+                        style={{
+                          background: 'rgba(8,18,38,0.6)',
+                          border: '1px solid rgba(120,140,180,0.10)',
+                        }}
                       >
                         <div className="min-w-0 flex-1">
                           {restoreTopicId === entry.id ? (
                             <div className="space-y-1">
-                              <p className="text-xs text-slate-300">Re-search this topic?</p>
+                              <p className="text-xs" style={{ color: '#94A3B8' }}>
+                                Re-search this topic?
+                              </p>
                               <div className="flex gap-2">
                                 <button
                                   type="button"
@@ -1256,14 +1375,23 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                                     setRestoreTopicId(null);
                                     setSettingsMenuOpen(false);
                                   }}
-                                  className="rounded border border-cyan-400/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] text-cyan-300"
+                                  className="rounded px-2 py-0.5 text-[10px]"
+                                  style={{
+                                    background: 'rgba(33,85,214,0.12)',
+                                    border: '1px solid rgba(33,85,214,0.28)',
+                                    color: '#93B4FF',
+                                  }}
                                 >
                                   Yes
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setRestoreTopicId(null)}
-                                  className="rounded border border-white/10 px-2 py-0.5 text-[10px] text-slate-500"
+                                  className="rounded px-2 py-0.5 text-[10px]"
+                                  style={{
+                                    border: '1px solid rgba(120,140,180,0.14)',
+                                    color: '#475569',
+                                  }}
                                 >
                                   Cancel
                                 </button>
@@ -1275,8 +1403,10 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                               className="w-full text-left"
                               onClick={() => setRestoreTopicId(entry.id)}
                             >
-                              <p className="truncate text-xs text-slate-200">{entry.topic}</p>
-                              <p className="text-[10px] text-slate-500">
+                              <p className="truncate text-xs" style={{ color: '#CBD5E1' }}>
+                                {entry.topic}
+                              </p>
+                              <p className="text-[10px]" style={{ color: '#3D5070' }}>
                                 {entry.count.toLocaleString()} refs · {formatHistoryDate(entry.timestamp)}
                               </p>
                             </button>
@@ -1289,7 +1419,8 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                             setHistory(updated);
                             localStorage.setItem('paper-harvester-history', JSON.stringify(updated));
                           }}
-                          className="ml-2 shrink-0 text-slate-600 transition hover:text-red-400"
+                          className="ml-2 shrink-0 transition"
+                          style={{ color: '#334155' }}
                           aria-label="Delete"
                         >
                           <Trash2 size={13} />

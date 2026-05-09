@@ -1,22 +1,20 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Database } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 
 type Source = { id: string; label: string; desc: string; direct?: boolean };
 
 const SOURCES: Source[] = [
-  // Via WISP aggregator
-  { id: 'openalex', label: 'OpenAlex', desc: '250M+ scholarly works across all disciplines' },
-  { id: 'semantic', label: 'Semantic Scholar', desc: 'AI-powered scientific literature discovery' },
-  { id: 'crossref', label: 'Crossref', desc: 'DOI authority — 140M+ records, all fields' },
-  { id: 'arxiv', label: 'arXiv', desc: 'Preprints — CS, physics, math, quantitative biology' },
-  { id: 'biorxiv', label: 'bioRxiv / medRxiv', desc: 'Biology and clinical medicine preprints' },
-  { id: 'unpaywall', label: 'Unpaywall', desc: 'Open-access version finder by DOI' },
-  // Direct API adapters
-  { id: 'pubmed', label: 'PubMed / MEDLINE', desc: '35M+ biomedical and life science citations', direct: true },
-  { id: 'europepmc', label: 'Europe PMC', desc: 'Life sciences open-access archive, 42M+ records', direct: true },
-  { id: 'core', label: 'CORE', desc: 'Open-access aggregator, 200M+ full-text papers', direct: true },
-  { id: 'eric', label: 'ERIC', desc: 'Education research — US Dept of Education index', direct: true },
+  { id: 'openalex',   label: 'OpenAlex',            desc: '250M+ scholarly works across all disciplines' },
+  { id: 'semantic',   label: 'Semantic Scholar',     desc: 'AI-powered scientific literature discovery' },
+  { id: 'crossref',   label: 'Crossref',             desc: 'DOI authority — 140M+ records, all fields' },
+  { id: 'arxiv',      label: 'arXiv',                desc: 'Preprints — CS, physics, math, quantitative biology' },
+  { id: 'biorxiv',    label: 'bioRxiv / medRxiv',    desc: 'Biology and clinical medicine preprints' },
+  { id: 'unpaywall',  label: 'Unpaywall',            desc: 'Open-access version finder by DOI' },
+  { id: 'pubmed',     label: 'PubMed / MEDLINE',     desc: '35M+ biomedical and life science citations', direct: true },
+  { id: 'europepmc',  label: 'Europe PMC',           desc: 'Life sciences open-access archive, 42M+ records', direct: true },
+  { id: 'core',       label: 'CORE',                 desc: 'Open-access aggregator, 200M+ full-text papers', direct: true },
+  { id: 'eric',       label: 'ERIC',                 desc: 'Education research — US Dept of Education index', direct: true },
 ];
 
 type Props = {
@@ -33,31 +31,53 @@ export function ActiveSourcesCard({ estimatedPapers }: Props) {
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between"
       >
-        <div className="text-left">
-          <h3 className="text-sm font-semibold text-white">Reference Sources</h3>
-          <p className="text-xs text-slate-400">
-            {SOURCES.length} active · up to ~{estimatedPapers.toLocaleString()} refs
-          </p>
+        <div className="flex items-center gap-2.5 text-left">
+          <span
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+            style={{ background: 'rgba(33,85,214,0.14)', color: '#6B9EFF' }}
+          >
+            <Database size={13} />
+          </span>
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: '#F3F6FB' }}>
+              Reference Sources
+            </h3>
+            <p className="text-[11px]" style={{ color: '#64748B' }}>
+              {SOURCES.length} active · up to ~{estimatedPapers.toLocaleString()} refs
+            </p>
+          </div>
         </div>
-        {open ? (
-          <ChevronUp size={14} className="shrink-0 text-slate-400" />
-        ) : (
-          <ChevronDown size={14} className="shrink-0 text-slate-400" />
-        )}
+        {open
+          ? <ChevronUp size={13} className="shrink-0" style={{ color: '#64748B' }} />
+          : <ChevronDown size={13} className="shrink-0" style={{ color: '#64748B' }} />
+        }
       </button>
 
       {open && (
-        <div className="mt-3 border-t border-white/10 pt-3">
-          <div className="mb-2 flex gap-3 text-[10px] text-slate-600">
-            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Via WISP</span>
-            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-cyan-400" /> Direct API</span>
+        <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(120,140,180,0.10)' }}>
+          <div className="mb-2.5 flex gap-4 text-[10px]" style={{ color: '#3D5070' }}>
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#6EE7B7' }} />
+              Via WISP
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#93B4FF' }} />
+              Direct API
+            </span>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {SOURCES.map((s) => (
-              <div key={s.id} className="flex items-start gap-2">
-                <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${s.direct ? 'bg-cyan-400' : 'bg-emerald-400'}`} />
-                <span className="text-xs text-slate-200">{s.label}</span>
-                <span className="text-xs text-slate-500">— {s.desc}</span>
+              <div key={s.id} className="flex items-start gap-2.5">
+                <span
+                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ background: s.direct ? '#6B9EFF' : '#6EE7B7' }}
+                />
+                <span className="text-xs font-medium" style={{ color: '#CBD5E1' }}>
+                  {s.label}
+                </span>
+                <span className="text-[11px] leading-relaxed" style={{ color: '#475569' }}>
+                  — {s.desc}
+                </span>
               </div>
             ))}
           </div>
