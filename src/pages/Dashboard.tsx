@@ -648,19 +648,26 @@ export function Dashboard() {
         </div>
 
         {settingsMenuOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
-            <div className="absolute left-0 top-0 h-full w-full max-w-xl overflow-y-auto border-r border-white/10 bg-[#060913] p-4 sm:p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">Settings</h2>
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={() => setSettingsMenuOpen(false)}>
+            <div
+              className="absolute left-0 top-0 h-full w-full max-w-sm overflow-y-auto border-r border-white/10 bg-[#060913] shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#060913]/95 px-4 py-3 backdrop-blur">
+                <h2 className="text-sm font-semibold text-white">Settings</h2>
                 <button
                   type="button"
                   onClick={() => setSettingsMenuOpen(false)}
-                  className="rounded-lg border border-white/20 bg-white/5 px-3 py-1 text-sm text-white"
+                  className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-slate-300 transition hover:bg-white/10"
                 >
                   Close
                 </button>
               </div>
-              <div className="space-y-4 pb-8">
+
+              <div className="space-y-3 p-4 pb-10">
+                {/* Backends */}
+                <p className="px-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Backends</p>
                 <WispConfigCard
                   config={settings.wispConfig}
                   onChange={(wispConfig) => setSettings((s) => ({ ...s, wispConfig }))}
@@ -669,6 +676,9 @@ export function Dashboard() {
                   config={settings.apiConfig}
                   onChange={(apiConfig) => setSettings((s) => ({ ...s, apiConfig }))}
                 />
+
+                {/* Search */}
+                <p className="px-0.5 pt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Search</p>
                 <SearchConfigCard
                   topic={settings.topic}
                   setTopic={(topic) => setSettings((s) => ({ ...s, topic }))}
@@ -692,6 +702,9 @@ export function Dashboard() {
                   setSources={(sources) => setSettings((s) => ({ ...s, sources }))}
                   estimatedPapers={displayEstimate}
                 />
+
+                {/* Output */}
+                <p className="px-0.5 pt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Output</p>
                 <OutputCard
                   expandedTopic={expandedTopic}
                   externalAiEnabled={settings.externalAiEnabled}

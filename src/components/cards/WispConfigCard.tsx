@@ -39,43 +39,40 @@ export function WispConfigCard({ config, onChange }: Props) {
   const isConfigured = Boolean(config.baseUrl.trim());
 
   return (
-    <GlassCard className="p-4 sm:p-6">
-      <div className="mb-4 flex items-center justify-between">
+    <GlassCard className="p-4">
+      <div className="mb-3 flex items-start justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold text-white">WISP Search Backend</h2>
-          <p className="mt-0.5 text-xs text-slate-400">
-            Real academic search via OpenAlex, arXiv &amp; Semantic Scholar
-          </p>
+          <h3 className="text-sm font-semibold text-white">WISP Search Backend</h3>
+          <p className="mt-0.5 text-xs text-slate-400">Real papers via OpenAlex, arXiv &amp; Semantic Scholar</p>
         </div>
         {isConfigured ? (
-          <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-300">
-            Configured
+          <span className="shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] text-emerald-300">
+            Live
           </span>
         ) : (
-          <span className="rounded-full border border-slate-600/40 bg-slate-700/20 px-2.5 py-0.5 text-xs text-slate-400">
-            Mock mode
+          <span className="shrink-0 rounded-full border border-slate-600/40 bg-slate-700/20 px-2 py-0.5 text-[11px] text-slate-400">
+            Mock
           </span>
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <div>
-          <label className="mb-1.5 block text-sm text-slate-300" htmlFor="wisp-base-url">
-            WISP Base URL
+          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="wisp-base-url">
+            Base URL
           </label>
           <input
             id="wisp-base-url"
             value={config.baseUrl}
             onChange={set('baseUrl')}
-            className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-2.5 text-sm text-white placeholder:text-slate-500"
-            placeholder="https://your-wisp-instance.up.railway.app"
+            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
+            placeholder="https://your-wisp.onrender.com"
           />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm text-slate-300" htmlFor="wisp-api-key">
-            API Key{' '}
-            <span className="text-slate-500">(optional if WISP_API_KEYS not set on server)</span>
+          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="wisp-api-key">
+            API Key
           </label>
           <div className="relative">
             <input
@@ -83,38 +80,33 @@ export function WispConfigCard({ config, onChange }: Props) {
               type={showKey ? 'text' : 'password'}
               value={config.apiKey}
               onChange={set('apiKey')}
-              className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-2.5 pr-10 text-sm text-white placeholder:text-slate-500"
-              placeholder="your-wisp-api-key"
+              className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 pr-9 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
+              placeholder="Leave blank if WISP_API_KEYS not set"
             />
             <button
               type="button"
               onClick={() => setShowKey((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-              aria-label={showKey ? 'Hide API key' : 'Show API key'}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+              aria-label={showKey ? 'Hide key' : 'Show key'}
             >
-              {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+              {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
           </div>
+          <p className="mt-1 text-[11px] text-slate-600">Optional — only needed if WISP_API_KEYS is set on your server</p>
         </div>
 
-        <div className="flex items-center gap-3 pt-1">
+        <div className="flex items-center gap-3 pt-0.5">
           <button
             type="button"
             onClick={testConnection}
             disabled={!isConfigured || testing}
-            className="rounded-lg border border-cyan-300/50 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {testing ? 'Testing…' : 'Test Connection'}
           </button>
-          {testResult === 'ok' && <span className="text-sm text-emerald-300">Connected</span>}
-          {testResult === 'fail' && <span className="text-sm text-red-400">Connection failed</span>}
+          {testResult === 'ok' && <span className="text-xs text-emerald-400">Connected ✓</span>}
+          {testResult === 'fail' && <span className="text-xs text-red-400">Failed — check URL / CORS</span>}
         </div>
-
-        {!isConfigured && (
-          <p className="pt-1 text-xs text-slate-500">
-            Without WISP, references are generated as mock data. Self-host WISP and paste its URL above to switch to real academic search.
-          </p>
-        )}
       </div>
     </GlassCard>
   );
