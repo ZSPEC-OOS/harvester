@@ -7,7 +7,7 @@ export function GlassCard({ className, children }: GlassCardProps) {
   return (
     <section
       className={clsx(
-        'ds-panel',
+        'rounded-2xl border border-white/15 bg-[#0b1221]/80 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl',
         className,
       )}
     >

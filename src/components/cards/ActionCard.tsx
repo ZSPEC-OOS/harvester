@@ -21,7 +21,7 @@ export function ActionCard({ onRun, onExport, estimatedPapers, disableRun = fals
         <button
           onClick={onRun}
           disabled={disableRun}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-violet-400/40 bg-gradient-to-r from-[#2155D6] to-[#26BFA6] px-5 py-3 text-sm font-semibold text-[#F3F6FB] shadow-[0_10px_32px_rgba(33,85,214,0.34)] transition hover:from-violet-500/90 hover:to-indigo-500/90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-violet-400/40 bg-gradient-to-r from-violet-500/80 to-indigo-500/80 px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_26px_rgba(139,92,246,0.25)] transition hover:from-violet-500/90 hover:to-indigo-500/90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isRunning ? (
             <>
@@ -31,7 +31,7 @@ export function ActionCard({ onRun, onExport, estimatedPapers, disableRun = fals
           ) : (
             <>
               <Play size={14} className="fill-white" />
-              Process Expansion
+              Run DeepScholar
             </>
           )}
         </button>
@@ -44,7 +44,7 @@ export function ActionCard({ onRun, onExport, estimatedPapers, disableRun = fals
                   key={fmt}
                   onClick={() => setExportFmt(fmt)}
                   className={`px-2 py-1 transition ${
-                    exportFmt === fmt ? 'bg-white/15 text-[#F3F6FB]' : 'text-slate-500 hover:text-slate-300'
+                    exportFmt === fmt ? 'bg-white/15 text-white' : 'text-slate-500 hover:text-slate-300'
                   }`}
                 >
                   {fmt === 'txt' ? 'TXT' : fmt === 'bibtex' ? 'BibTeX' : 'RIS'}
@@ -55,7 +55,7 @@ export function ActionCard({ onRun, onExport, estimatedPapers, disableRun = fals
           <button
             onClick={() => onExport(exportFmt)}
             disabled={!hasPapers}
-            className="flex items-center gap-2 rounded-xl border border-[rgba(120,140,180,0.2)] bg-[rgba(8,18,38,0.65)] px-4 py-2 text-sm font-medium text-[#94A3B8] transition hover:bg-[rgba(17,31,58,0.88)] hover:text-[#F3F6FB] disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
             title={`Export as ${exportFmt}`}
           >
             <Download size={15} />

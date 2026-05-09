@@ -58,15 +58,15 @@ export function WispConfigCard({ config, onChange }: Props) {
     <GlassCard className="p-4">
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-[#F3F6FB]">WISP Search Backend</h3>
-          <p className="mt-0.5 text-xs text-[#94A3B8]">Real papers via OpenAlex, arXiv &amp; Semantic Scholar</p>
+          <h3 className="text-sm font-semibold text-white">WISP Search Backend</h3>
+          <p className="mt-0.5 text-xs text-slate-400">Real papers via OpenAlex, arXiv &amp; Semantic Scholar</p>
         </div>
         {isConfigured ? (
           <span className="shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] text-emerald-300">
             Live
           </span>
         ) : (
-          <span className="shrink-0 rounded-full border border-slate-600/40 bg-slate-700/20 px-2 py-0.5 text-[11px] text-[#94A3B8]">
+          <span className="shrink-0 rounded-full border border-slate-600/40 bg-slate-700/20 px-2 py-0.5 text-[11px] text-slate-400">
             Mock
           </span>
         )}
@@ -74,20 +74,20 @@ export function WispConfigCard({ config, onChange }: Props) {
 
       <div className="space-y-2.5">
         <div>
-          <label className="mb-1 block text-xs font-medium text-[#94A3B8]" htmlFor="wisp-base-url">
+          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="wisp-base-url">
             Base URL
           </label>
           <input
             id="wisp-base-url"
             value={config.baseUrl}
             onChange={set('baseUrl')}
-            className="ds-input"
+            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
             placeholder="https://your-wisp.onrender.com"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-[#94A3B8]" htmlFor="wisp-api-key">
+          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="wisp-api-key">
             API Key
           </label>
           <div className="relative">
@@ -96,7 +96,7 @@ export function WispConfigCard({ config, onChange }: Props) {
               type={showKey ? 'text' : 'password'}
               value={config.apiKey}
               onChange={set('apiKey')}
-              className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 pr-9 text-sm text-[#F3F6FB] placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
+              className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 pr-9 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
               placeholder="Leave blank if WISP_API_KEYS not set"
             />
             <button
