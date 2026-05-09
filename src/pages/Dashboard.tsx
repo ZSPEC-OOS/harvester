@@ -236,41 +236,7 @@ export function Dashboard() {
     if (!settings.topic.trim()) return;
     setIsExpanding(true);
 
-    // 1. Try WISP /v1/research first
-    if (wispConfigured) {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (settings.wispConfig.apiKey.trim()) headers['X-API-Key'] = settings.wispConfig.apiKey;
-      setLines((prev) => [...prev, `[${stamp()}] Calling WISP for topic expansion…`]);
-      try {
-        const res = await fetch(`${settings.wispConfig.baseUrl.replace(/\/$/, '')}/v1/research`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            query: settings.topic.trim(),
-            mode: 'concise',
-            max_sources: 6,
-            synthesis_mode: 'auto',
-          }),
-        });
-        if (!res.ok) throw new Error(`WISP ${res.status}`);
-        const data = await res.json();
-        const content: string = data.detailed_report || data.final_answer || data.executive_summary || '';
-        if (!content) throw new Error('Empty WISP response');
-        setExpandedTopic(content);
-        setExpandedTopicDraft(content);
-        setExpansionAccepted(false);
-        setLines((prev) => [
-          ...prev,
-          `[${stamp()}] Expansion received from WISP (${data.sources?.length ?? 0} sources, confidence ${((data.confidence_score ?? 0) * 100).toFixed(0)}%)`,
-        ]);
-        setIsExpanding(false);
-        return;
-      } catch (err) {
-        setLines((prev) => [...prev, `[${stamp()}] WISP expansion failed: ${String(err)} — trying next option`]);
-      }
-    }
-
-    // 2. Try configured OpenAI-compatible API
+    // 1. Try configured OpenAI-compatible API
     if (settings.externalAiEnabled && apiConfigured) {
       const { baseUrl, apiKey, modelId, nickname } = settings.apiConfig;
       setLines((prev) => [...prev, `[${stamp()}] Calling ${nickname || 'AI API'} for topic expansion…`]);
@@ -306,7 +272,10 @@ export function Dashboard() {
       }
     }
 
-    // 3. Local mock expansion
+    // 2. Local expansion
+    if (wispConfigured) {
+      setLines((prev) => [...prev, `[${stamp()}] Generating expansion locally (WISP used for paper search, not expansion)`]);
+    }
     const next = expandTopicLocally(settings.topic);
     setExpandedTopic(next);
     setExpandedTopicDraft(next);
