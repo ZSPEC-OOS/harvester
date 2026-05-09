@@ -21,7 +21,10 @@ export function TopBar({ onMenuClick, isRunning, wispConfigured }: Props) {
         </button>
 
         {/* Center — title (absolute so it's truly centred regardless of badge width) */}
-        <h1 className="absolute left-1/2 -translate-x-1/2 text-xl font-bold tracking-tight text-white sm:text-2xl">
+        <h1
+          className="absolute left-1/2 -translate-x-1/2 text-2xl font-semibold text-white sm:text-3xl"
+          style={{ fontFamily: "'EB Garamond', serif" }}
+        >
           DeepScholar
         </h1>
 
