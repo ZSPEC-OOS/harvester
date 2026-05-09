@@ -49,10 +49,9 @@ type HistoryEntry = {
   timestamp: number;
 };
 
-type ClarifyAnswers = {
-  focus: string;
-  recency: 'Foundational' | 'Recent' | 'Both';
-  domain: string;
+type ClarifyQuestion = {
+  question: string;
+  placeholder: string;
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -73,7 +72,6 @@ const initialSettings: Settings = {
   wispConfig: { baseUrl: '', apiKey: '' },
 };
 
-const initialClarify: ClarifyAnswers = { focus: '', recency: 'Both', domain: '' };
 
 const seedLines = ['[10:32:15] DeepScholar ready', '[10:32:28] Waiting for user action'];
 
@@ -278,8 +276,9 @@ export function Dashboard() {
   const [activeStep, setActiveStep] = useState(0);
   const cancelRef = useRef(false);
 
-  const [clarifyOpen, setClarifyOpen] = useState(false);
-  const [clarifyAnswers, setClarifyAnswers] = useState<ClarifyAnswers>(initialClarify);
+  const [clarifyQuestions, setClarifyQuestions] = useState<ClarifyQuestion[]>([]);
+  const [clarifyAnswers, setClarifyAnswers] = useState<string[]>([]);
+  const [clarifyPhase, setClarifyPhase] = useState<'idle' | 'loading' | 'pending'>('idle');
 
   const [history, setHistory] = useState<HistoryEntry[]>(() => {
     const saved = localStorage.getItem('paper-harvester-history');
@@ -351,14 +350,82 @@ export function Dashboard() {
 
   // ── Topic expansion ────────────────────────────────────────────────────────
 
+  // Step 1: generate topic-specific clarifying questions
   const processExpansion = async () => {
     if (!settings.topic.trim()) return;
-    setIsExpanding(true);
+    setClarifyPhase('loading');
 
-    // Build enriched topic with clarify answers
+    if (apiConfigured) {
+      const { baseUrl, apiKey, modelId, nickname } = settings.apiConfig;
+      setLines((prev) => [...prev, `[${stamp()}] ${nickname || 'AI API'} generating focused questions…`]);
+      try {
+        const res = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model: modelId || 'gpt-4o',
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are a research assistant preparing a deep literature search. Generate exactly 3 short, specific clarifying questions for the research topic. Focus on the most important ambiguities that — if answered — would meaningfully change which papers get found (e.g. target population, disease subtype, comparison methodology, application domain, geographic scope, regulatory context). Return ONLY valid JSON with no markdown: {"questions":[{"question":"...","placeholder":"..."}]}',
+              },
+              { role: 'user', content: `Research topic: "${settings.topic.trim()}"` },
+            ],
+            max_tokens: 400,
+          }),
+        });
+        if (!res.ok) throw new Error(`API ${res.status}`);
+        const data = await res.json();
+        const raw: string = data.choices?.[0]?.message?.content ?? '';
+        const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+        const questions: ClarifyQuestion[] = parsed.questions ?? [];
+        if (questions.length > 0) {
+          setClarifyQuestions(questions);
+          setClarifyAnswers(new Array(questions.length).fill(''));
+          setClarifyPhase('pending');
+          setLines((prev) => [...prev, `[${stamp()}] Questions ready — answer to sharpen the search`]);
+          return;
+        }
+      } catch (err) {
+        setLines((prev) => [...prev, `[${stamp()}] Question generation failed (${String(err)}) — using defaults`]);
+      }
+    }
+
+    // Static fallback — still topic-specific
+    const t = settings.topic.trim();
+    const staticQuestions: ClarifyQuestion[] = [
+      {
+        question: `What specific aspect of "${t}" are you researching?`,
+        placeholder: 'e.g. safety mechanisms, clinical outcomes, performance benchmarks…',
+      },
+      {
+        question: 'Foundational/seminal work, recent advances (last 5 years), or both?',
+        placeholder: 'e.g. recent advances, seminal papers from the 1990s, both…',
+      },
+      {
+        question: 'Any specific methodology, population, or application domain to prioritise?',
+        placeholder: 'e.g. transformer architectures, paediatric patients, drug discovery…',
+      },
+    ];
+    setClarifyQuestions(staticQuestions);
+    setClarifyAnswers(['', '', '']);
+    setClarifyPhase('pending');
+  };
+
+  // Step 2: run actual expansion with answers injected
+  // Accepts explicit q/a to avoid stale closure when skipping
+  const runExpansion = async (questionsIn = clarifyQuestions, answersIn = clarifyAnswers) => {
+    if (!settings.topic.trim()) return;
+    setIsExpanding(true);
+    setClarifyPhase('idle');
+
+    const answeredPairs = questionsIn
+      .map((q, i) => (answersIn[i]?.trim() ? `${q.question} ${answersIn[i].trim()}` : null))
+      .filter(Boolean);
     const clarifyContext =
-      clarifyAnswers.focus || clarifyAnswers.domain || clarifyAnswers.recency !== 'Both'
-        ? `\n\nResearch focus: ${clarifyAnswers.focus || 'general overview'}. Recency preference: ${clarifyAnswers.recency} work. Domain/methodology specifics: ${clarifyAnswers.domain || 'none specified'}.`
+      answeredPairs.length > 0
+        ? `\n\nResearcher clarifications:\n${answeredPairs.join('\n')}`
         : '';
     const topicForExpansion = settings.topic.trim() + clarifyContext;
 
@@ -663,82 +730,65 @@ export function Dashboard() {
               setExpandedTopic('');
               setExpandedTopicDraft('');
               setExpansionAccepted(false);
-              setClarifyOpen(false);
-              setClarifyAnswers(initialClarify);
+              setClarifyQuestions([]);
+              setClarifyAnswers([]);
+              setClarifyPhase('idle');
             }}
             className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/40 focus:outline-none"
             placeholder="e.g. foundation models for protein design"
           />
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={processExpansion}
-              disabled={!settings.topic.trim() || isExpanding}
-              className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {isExpanding ? 'Processing…' : 'Process Expansion'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setClarifyOpen((v) => !v)}
-              disabled={!settings.topic.trim()}
-              className={`rounded-lg border px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                clarifyOpen
-                  ? 'border-violet-400/40 bg-violet-500/10 text-violet-300'
-                  : 'border-white/15 bg-white/5 text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Clarify Search
-            </button>
-          </div>
+          {clarifyPhase !== 'pending' && (
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={processExpansion}
+                disabled={!settings.topic.trim() || isExpanding || clarifyPhase === 'loading'}
+                className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {clarifyPhase === 'loading' ? 'Generating questions…' : isExpanding ? 'Processing…' : 'Process Expansion'}
+              </button>
+            </div>
+          )}
 
-          {/* Clarify questions */}
-          {clarifyOpen && (
-            <div className="mt-3 space-y-3 rounded-lg border border-white/10 bg-slate-900/40 p-4">
-              <p className="text-xs font-medium text-slate-400">
-                Answer any or all to focus the search — all optional.
+          {/* AI-generated topic-specific clarifying questions */}
+          {clarifyPhase === 'pending' && clarifyQuestions.length > 0 && (
+            <div className="mt-3 space-y-3 rounded-lg border border-violet-500/20 bg-slate-900/40 p-4">
+              <p className="text-xs font-medium text-violet-300/80">
+                Answer to sharpen the search — all optional, skip any you don't need.
               </p>
-              <div>
-                <label className="mb-1 block text-xs text-slate-500">
-                  What aspect are you primarily researching?
-                </label>
-                <input
-                  value={clarifyAnswers.focus}
-                  onChange={(e) => setClarifyAnswers((a) => ({ ...a, focus: e.target.value }))}
-                  className="w-full rounded-md border border-white/10 bg-slate-900/60 px-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-cyan-500/40 focus:outline-none"
-                  placeholder="e.g. clinical applications, benchmarking methods…"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-slate-500">Paper focus</label>
-                <div className="flex gap-1.5">
-                  {(['Foundational', 'Recent', 'Both'] as const).map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setClarifyAnswers((a) => ({ ...a, recency: opt }))}
-                      className={`rounded-md border px-3 py-1 text-xs transition ${
-                        clarifyAnswers.recency === opt
-                          ? 'border-cyan-400/40 bg-cyan-500/15 text-cyan-300'
-                          : 'border-white/10 text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
+              {clarifyQuestions.map((q, i) => (
+                <div key={i}>
+                  <label className="mb-1 block text-xs text-slate-400">{q.question}</label>
+                  <input
+                    value={clarifyAnswers[i] ?? ''}
+                    onChange={(e) => {
+                      const next = [...clarifyAnswers];
+                      next[i] = e.target.value;
+                      setClarifyAnswers(next);
+                    }}
+                    className="w-full rounded-md border border-white/10 bg-slate-900/60 px-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-cyan-500/40 focus:outline-none"
+                    placeholder={q.placeholder}
+                  />
                 </div>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-slate-500">
-                  Specific methodology, population, or domain? (optional)
-                </label>
-                <input
-                  value={clarifyAnswers.domain}
-                  onChange={(e) => setClarifyAnswers((a) => ({ ...a, domain: e.target.value }))}
-                  className="w-full rounded-md border border-white/10 bg-slate-900/60 px-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-cyan-500/40 focus:outline-none"
-                  placeholder="e.g. NLP, paediatric patients, drug discovery…"
-                />
+              ))}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => runExpansion()}
+                  disabled={isExpanding}
+                  className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isExpanding ? 'Processing…' : 'Continue with Expansion'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => runExpansion([], [])}
+                  disabled={isExpanding}
+                  className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-500 transition hover:text-slate-300 disabled:opacity-40"
+                >
+                  Skip
+                </button>
               </div>
             </div>
           )}
@@ -851,7 +901,7 @@ export function Dashboard() {
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      activeStep, apiConfigured, clarifyAnswers, clarifyOpen, displayEstimate,
+      activeStep, apiConfigured, clarifyAnswers, clarifyPhase, clarifyQuestions, displayEstimate,
       expandedTopic, expandedTopicDraft, expansionAccepted, isExpanding,
       isRunning, isVerifying, papers, settings, validationError, wispConfigured,
     ],
