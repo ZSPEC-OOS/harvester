@@ -12,7 +12,7 @@ type Props = {
 export function OutputCard({ expandedTopic, externalAiEnabled, setExternalAiEnabled, apiConfigured, apiNickname }: Props) {
   return (
     <GlassCard className="p-4">
-      <h3 className="mb-3 text-sm font-semibold text-[#F3F6FB]">AI Expansion</h3>
+      <h3 className="mb-3 text-sm font-semibold text-white">AI Expansion</h3>
 
       <div className="mb-3">
         <Checkbox
@@ -40,7 +40,7 @@ export function OutputCard({ expandedTopic, externalAiEnabled, setExternalAiEnab
 
       {expandedTopic && (
         <div className="mt-3">
-          <p className="mb-1 text-xs font-medium text-[#94A3B8]">Current Expanded Topic</p>
+          <p className="mb-1 text-xs font-medium text-slate-400">Current Expanded Topic</p>
           <div className="max-h-28 overflow-auto rounded-lg border border-white/10 bg-black/20 px-3 py-2">
             <p className="text-xs leading-relaxed text-slate-300">{expandedTopic}</p>
           </div>
