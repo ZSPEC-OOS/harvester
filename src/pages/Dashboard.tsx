@@ -84,19 +84,64 @@ const expandTopicLocally = (topic: string) => {
   ].join('\n\n');
 };
 
-const buildMockReferences = (settings: Settings, expandedTopic: string, targetCount: number) => {
+const AUTHORS = [
+  'Chen, L., Wang, Y., & Zhang, H.',
+  'Patel, R., Kumar, A., & Singh, M.',
+  'Johnson, E., Brown, K., & Davis, T.',
+  'Müller, J., Schmidt, A., & Weber, F.',
+  'Liu, X., Li, J., & Wu, Q.',
+  'García, M., López, C., & Martínez, R.',
+  'Anderson, P., Thompson, S., & Wilson, B.',
+  'Nakamura, K., Tanaka, Y., & Sato, R.',
+  'Kim, S., Park, J., & Lee, H.',
+  'Okafor, N., Diallo, A., & Mensah, K.',
+  'Petrov, I., Ivanova, E., & Sokolov, D.',
+  'Ferreira, B., Oliveira, C., & Santos, P.',
+];
+
+const JOURNALS = [
+  'Nature Communications',
+  'PLOS ONE',
+  'Science Advances',
+  'Frontiers in Research',
+  'Journal of Computational Science',
+  'International Journal of Applied Research',
+  'Scientific Reports',
+  'Applied Sciences',
+  'Research in Focus',
+  'Advances in Theory and Practice',
+  'Interdisciplinary Research Letters',
+  'Current Research Perspectives',
+];
+
+const TITLE_TEMPLATES = [
+  (t: string) => `A systematic review of ${t}`,
+  (t: string) => `Advances in ${t}: methods and applications`,
+  (t: string) => `${t}: a comprehensive analysis`,
+  (t: string) => `Evaluating approaches to ${t}`,
+  (t: string) => `Benchmarking techniques for ${t}`,
+  (t: string) => `${t} — empirical findings and future directions`,
+  (t: string) => `Deep investigation of ${t}`,
+  (t: string) => `Comparative study of methods in ${t}`,
+  (t: string) => `${t}: current state and open challenges`,
+  (t: string) => `Novel perspectives on ${t}`,
+];
+
+const buildMockReferences = (settings: Settings, _expandedTopic: string, targetCount: number) => {
   const count = Math.max(0, Math.min(targetCount, 50000));
   const style = styleLabelMap[settings.referenceStyle] ?? settings.referenceStyle;
+  const topic = settings.topic.trim();
 
   return Array.from({ length: count }, (_, i) => {
-    const year = settings.startYear + (i % (settings.endYear - settings.startYear + 1));
-    const topicLead = expandedTopic.split('\n')[0].replace('Primary objective: ', '');
-    const title = `Comprehensive study #${i + 1} on ${topicLead}`;
-    const journal = `Journal of DeepScholar Synthesis ${((i % 18) + 1).toString().padStart(2, '0')}`;
-    const doi = `10.${1200 + (i % 700)}/deep.${year}.${(i + 1).toString().padStart(5, '0')}`;
+    const year = settings.startYear + (i % Math.max(1, settings.endYear - settings.startYear + 1));
+    const authors = AUTHORS[i % AUTHORS.length];
+    const journal = JOURNALS[i % JOURNALS.length];
+    const titleFn = TITLE_TEMPLATES[i % TITLE_TEMPLATES.length];
+    const title = titleFn(topic);
+    const doi = `10.${1200 + (i % 700)}/ds.${year}.${(i + 1).toString().padStart(5, '0')}`;
 
     if (settings.referenceStyle === 'doi-only') return `${i + 1}. ${doi}`;
-    return `${i + 1}. [${style}] Rivera, A., Noor, K., & Patel, J. (${year}). ${title}. ${journal}. https://doi.org/${doi}`;
+    return `${i + 1}. [${style}] ${authors} (${year}). ${title}. ${journal}. https://doi.org/${doi}`;
   });
 };
 
@@ -140,17 +185,24 @@ const fetchWispPapers = async (query: string, wisp: WispConfig): Promise<WispPap
 };
 
 const generateSubQueries = (topic: string, expandedTopic: string, count: number): string[] => {
-  const lines = expandedTopic
-    .split('\n')
+  const topicKeywords = new Set(topic.toLowerCase().split(/\s+/).filter((w) => w.length > 3));
+
+  const phrases = expandedTopic
+    .split(/[\n.]+/)
     .map((l) => l.replace(/^[^:]+:\s*/, '').trim())
-    .filter((l) => l.length > 20 && l.length < 400);
+    .filter((l) => l.length > 10 && l.length < 200);
 
   const queries: string[] = [topic];
-  for (const line of lines) {
+
+  for (const phrase of phrases) {
     if (queries.length >= count) break;
-    const sub = line.split('.')[0].trim();
-    if (sub) queries.push(sub);
+    const phraseLC = phrase.toLowerCase();
+    const topicOverlap = [...topicKeywords].some((kw) => phraseLC.includes(kw));
+    // Only use the phrase as-is if it mentions topic keywords; otherwise combine with topic
+    const q = topicOverlap ? phrase : `${topic} — ${phrase.split(',')[0].trim()}`;
+    if (q.length > 10 && !queries.includes(q)) queries.push(q);
   }
+
   while (queries.length < count) queries.push(topic);
   return queries.slice(0, count);
 };
