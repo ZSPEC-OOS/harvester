@@ -237,7 +237,7 @@ export function Dashboard() {
     setIsExpanding(true);
 
     // 1. Try configured OpenAI-compatible API
-    if (settings.externalAiEnabled && apiConfigured) {
+    if (apiConfigured) {
       const { baseUrl, apiKey, modelId, nickname } = settings.apiConfig;
       setLines((prev) => [...prev, `[${stamp()}] Calling ${nickname || 'AI API'} for topic expansion…`]);
       try {
