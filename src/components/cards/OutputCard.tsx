@@ -5,13 +5,11 @@ type Props = {
   expandedTopic: string;
   externalAiEnabled: boolean;
   setExternalAiEnabled: (value: boolean) => void;
-  externalApiUrl: string;
-  setExternalApiUrl: (value: string) => void;
-  externalApiAttachment: string;
-  setExternalApiAttachment: (value: string) => void;
+  apiConfigured: boolean;
+  apiNickname: string;
 };
 
-export function OutputCard(props: Props) {
+export function OutputCard({ expandedTopic, externalAiEnabled, setExternalAiEnabled, apiConfigured, apiNickname }: Props) {
   return (
     <GlassCard className="p-4 sm:p-6">
       <h2 className="mb-4 text-2xl font-semibold text-white sm:text-3xl">STEP 3: AI EXPANSION + API ATTACHMENT</h2>
@@ -21,47 +19,30 @@ export function OutputCard(props: Props) {
       </label>
       <textarea
         id="expanded-topic"
-        value={props.expandedTopic}
+        value={expandedTopic}
         readOnly
         className="mb-4 min-h-24 w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
         placeholder="DeepScholar will expand your topic into related terminology, synonyms, and adjacent subfields."
       />
 
-      <div className="mb-4">
+      <div className="mb-3">
         <Checkbox
           id="external-ai"
-          checked={props.externalAiEnabled}
-          onChange={props.setExternalAiEnabled}
-          label="Use external AI API attachment"
+          checked={externalAiEnabled}
+          onChange={setExternalAiEnabled}
+          label="Use external AI API for topic expansion"
         />
       </div>
 
-      {props.externalAiEnabled && (
-        <div className="space-y-3">
-          <div>
-            <label className="mb-2 block text-slate-300" htmlFor="api-url">
-              External API URL
-            </label>
-            <input
-              id="api-url"
-              value={props.externalApiUrl}
-              onChange={(e) => props.setExternalApiUrl(e.target.value)}
-              className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
-              placeholder="https://api.example.com/v1/references"
-            />
-          </div>
-          <div>
-            <label className="mb-2 block text-slate-300" htmlFor="api-attachment">
-              API Attachment / Key / Connector ID
-            </label>
-            <input
-              id="api-attachment"
-              value={props.externalApiAttachment}
-              onChange={(e) => props.setExternalApiAttachment(e.target.value)}
-              className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-white"
-              placeholder="paste your token or attachment id"
-            />
-          </div>
+      {externalAiEnabled && (
+        <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm">
+          {apiConfigured ? (
+            <p className="text-emerald-300">
+              Using <span className="font-medium">{apiNickname || 'configured API'}</span> — edit details in the AI Provider section above.
+            </p>
+          ) : (
+            <p className="text-amber-300">No API configured. Fill in the AI Provider section above to enable real AI expansion.</p>
+          )}
         </div>
       )}
     </GlassCard>
