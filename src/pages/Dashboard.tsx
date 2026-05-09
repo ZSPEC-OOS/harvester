@@ -219,6 +219,129 @@ const fetchWispPapers = async (query: string, wisp: WispConfig): Promise<WispPap
   return (data.papers ?? []) as WispPaper[];
 };
 
+const fetchPubMed = async (query: string): Promise<WispPaper[]> => {
+  const base = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
+  const searchRes = await fetch(
+    `${base}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=25&retmode=json&tool=deepscholar&email=app@deepscholar.ai`,
+  );
+  if (!searchRes.ok) return [];
+  const searchData = await searchRes.json();
+  const ids: string[] = searchData.esearchresult?.idlist ?? [];
+  if (ids.length === 0) return [];
+
+  const summaryRes = await fetch(
+    `${base}/esummary.fcgi?db=pubmed&id=${ids.join(',')}&retmode=json&tool=deepscholar&email=app@deepscholar.ai`,
+  );
+  if (!summaryRes.ok) return [];
+  const summaryData = await summaryRes.json();
+  const result = summaryData.result ?? {};
+
+  return ids.flatMap((id) => {
+    const item = result[id];
+    if (!item || item.error) return [];
+    const doi =
+      (item.articleids ?? []).find((a: { idtype: string; value: string }) => a.idtype === 'doi')
+        ?.value ?? null;
+    return [
+      {
+        title: item.title ?? '',
+        doi: doi || null,
+        authors: (item.authors ?? []).slice(0, 6).map((a: { name: string }) => a.name),
+        publication_year: item.pubdate ? parseInt(item.pubdate.slice(0, 4)) || null : null,
+        url: `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
+        oa_pdf_url: null,
+        provider: 'pubmed',
+      } satisfies WispPaper,
+    ];
+  });
+};
+
+const fetchEuropePmc = async (query: string): Promise<WispPaper[]> => {
+  const res = await fetch(
+    `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(query)}&format=json&pageSize=25&resultType=core`,
+  );
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.resultList?.result ?? []).map(
+    (item: {
+      title?: string;
+      doi?: string;
+      authorString?: string;
+      pubYear?: string;
+      source?: string;
+      id?: string;
+      isOpenAccess?: string;
+      fullTextUrl?: string;
+    }): WispPaper => ({
+      title: item.title ?? '',
+      doi: item.doi ?? null,
+      authors: item.authorString ? item.authorString.split(', ').slice(0, 6) : [],
+      publication_year: item.pubYear ? parseInt(item.pubYear) || null : null,
+      url: item.doi
+        ? `https://doi.org/${item.doi}`
+        : `https://europepmc.org/article/${item.source ?? ''}/${item.id ?? ''}`,
+      oa_pdf_url: item.isOpenAccess === 'Y' ? (item.fullTextUrl ?? null) : null,
+      provider: 'europepmc',
+    }),
+  );
+};
+
+const fetchCORE = async (query: string): Promise<WispPaper[]> => {
+  const res = await fetch(
+    `https://api.core.ac.uk/v3/search/works?q=${encodeURIComponent(query)}&limit=20`,
+  );
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.results ?? []).map(
+    (item: {
+      title?: string;
+      doi?: string;
+      authors?: Array<string | { name?: string }>;
+      yearPublished?: number;
+      downloadUrl?: string;
+    }): WispPaper => ({
+      title: item.title ?? '',
+      doi: item.doi ?? null,
+      authors: (item.authors ?? [])
+        .slice(0, 6)
+        .map((a) => (typeof a === 'string' ? a : (a.name ?? ''))),
+      publication_year: item.yearPublished ?? null,
+      url: item.doi ? `https://doi.org/${item.doi}` : (item.downloadUrl ?? ''),
+      oa_pdf_url: item.downloadUrl ?? null,
+      provider: 'core',
+    }),
+  );
+};
+
+const fetchERIC = async (query: string): Promise<WispPaper[]> => {
+  const res = await fetch(
+    `https://api.ies.ed.gov/eric/?search=${encodeURIComponent(query)}&format=json&rows=20`,
+  );
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.response?.docs ?? []).map(
+    (item: {
+      title?: string;
+      author?: string | string[];
+      publicationdateyear?: number;
+      url?: string;
+      id?: string;
+    }): WispPaper => ({
+      title: item.title ?? '',
+      doi: null,
+      authors: Array.isArray(item.author)
+        ? item.author.slice(0, 6)
+        : item.author
+          ? [item.author]
+          : [],
+      publication_year: item.publicationdateyear ?? null,
+      url: item.url ?? `https://eric.ed.gov/?id=${item.id ?? ''}`,
+      oa_pdf_url: null,
+      provider: 'eric',
+    }),
+  );
+};
+
 const generateSubQueries = (topic: string, expandedTopic: string, count: number): string[] => {
   const topicKeywords = new Set(topic.toLowerCase().split(/\s+/).filter((w) => w.length > 3));
 
@@ -592,7 +715,7 @@ export function Dashboard() {
 
     setLines((prev) => [
       ...prev,
-      `[${stamp()}] Starting WISP academic search — up to ${passes} passes`,
+      `[${stamp()}] Starting search across WISP + PubMed + Europe PMC + CORE + ERIC — up to ${passes} passes`,
     ]);
 
     for (let i = 0; i < queries.length; i++) {
@@ -603,7 +726,14 @@ export function Dashboard() {
       );
 
       try {
-        const fetched = await fetchWispPapers(queries[i], settings.wispConfig);
+        const settled = await Promise.allSettled([
+          fetchWispPapers(queries[i], settings.wispConfig),
+          fetchPubMed(queries[i]),
+          fetchEuropePmc(queries[i]),
+          fetchCORE(queries[i]),
+          fetchERIC(queries[i]),
+        ]);
+        const fetched = settled.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 
         // Client-side filters
         const filtered = fetched.filter((p) => {

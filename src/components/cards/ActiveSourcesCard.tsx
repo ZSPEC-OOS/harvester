@@ -2,22 +2,21 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 
-const SOURCES = [
-  { id: 'openalex', label: 'OpenAlex', desc: '250M+ scholarly works, open graph' },
-  { id: 'semantic', label: 'Semantic Scholar', desc: 'AI-powered literature discovery' },
-  { id: 'arxiv', label: 'arXiv', desc: 'Preprints — CS, physics, math, biology' },
-  { id: 'crossref', label: 'Crossref', desc: 'DOI registry and citation metadata' },
-  { id: 'pubmed', label: 'PubMed / MEDLINE', desc: 'Biomedical and life sciences' },
-  { id: 'europepmc', label: 'Europe PMC', desc: 'Life sciences open-access archive' },
-  { id: 'biorxiv', label: 'bioRxiv / medRxiv', desc: 'Biology and medicine preprints' },
-  { id: 'core', label: 'CORE', desc: 'Open-access aggregator, 200M+ papers' },
-  { id: 'base', label: 'BASE', desc: 'Bielefeld Academic Search Engine' },
-  { id: 'doaj', label: 'DOAJ', desc: 'Directory of Open Access Journals' },
-  { id: 'ssrn', label: 'SSRN', desc: 'Social science and economics preprints' },
-  { id: 'ieee', label: 'IEEE Xplore', desc: 'Engineering and technology' },
-  { id: 'acm', label: 'ACM Digital Library', desc: 'Computing and information science' },
-  { id: 'nasaads', label: 'NASA ADS', desc: 'Astrophysics and space sciences' },
-  { id: 'scholar', label: 'Google Scholar', desc: 'Broad academic web coverage' },
+type Source = { id: string; label: string; desc: string; direct?: boolean };
+
+const SOURCES: Source[] = [
+  // Via WISP aggregator
+  { id: 'openalex', label: 'OpenAlex', desc: '250M+ scholarly works across all disciplines' },
+  { id: 'semantic', label: 'Semantic Scholar', desc: 'AI-powered scientific literature discovery' },
+  { id: 'crossref', label: 'Crossref', desc: 'DOI authority — 140M+ records, all fields' },
+  { id: 'arxiv', label: 'arXiv', desc: 'Preprints — CS, physics, math, quantitative biology' },
+  { id: 'biorxiv', label: 'bioRxiv / medRxiv', desc: 'Biology and clinical medicine preprints' },
+  { id: 'unpaywall', label: 'Unpaywall', desc: 'Open-access version finder by DOI' },
+  // Direct API adapters
+  { id: 'pubmed', label: 'PubMed / MEDLINE', desc: '35M+ biomedical and life science citations', direct: true },
+  { id: 'europepmc', label: 'Europe PMC', desc: 'Life sciences open-access archive, 42M+ records', direct: true },
+  { id: 'core', label: 'CORE', desc: 'Open-access aggregator, 200M+ full-text papers', direct: true },
+  { id: 'eric', label: 'ERIC', desc: 'Education research — US Dept of Education index', direct: true },
 ];
 
 type Props = {
@@ -48,14 +47,20 @@ export function ActiveSourcesCard({ estimatedPapers }: Props) {
       </button>
 
       {open && (
-        <div className="mt-3 space-y-1.5 border-t border-white/10 pt-3">
-          {SOURCES.map((s) => (
-            <div key={s.id} className="flex items-start gap-2">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
-              <span className="text-xs text-slate-200">{s.label}</span>
-              <span className="text-xs text-slate-500">— {s.desc}</span>
-            </div>
-          ))}
+        <div className="mt-3 border-t border-white/10 pt-3">
+          <div className="mb-2 flex gap-3 text-[10px] text-slate-600">
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Via WISP</span>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-cyan-400" /> Direct API</span>
+          </div>
+          <div className="space-y-1.5">
+            {SOURCES.map((s) => (
+              <div key={s.id} className="flex items-start gap-2">
+                <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${s.direct ? 'bg-cyan-400' : 'bg-emerald-400'}`} />
+                <span className="text-xs text-slate-200">{s.label}</span>
+                <span className="text-xs text-slate-500">— {s.desc}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </GlassCard>
