@@ -44,7 +44,7 @@ const initialSettings: Settings = {
   referenceStyle: 'apa',
   startYear: 2000,
   endYear: CURRENT_YEAR,
-  searchDepth: 12,
+  searchDepth: 50,
   includePreprints: true,
   excludePatents: true,
   onlyOpenAccess: false,
@@ -85,7 +85,7 @@ const expandTopicLocally = (topic: string) => {
 };
 
 const buildMockReferences = (settings: Settings, expandedTopic: string, targetCount: number) => {
-  const count = Math.max(0, Math.min(targetCount, 2500));
+  const count = Math.max(0, Math.min(targetCount, 50000));
   const style = styleLabelMap[settings.referenceStyle] ?? settings.referenceStyle;
 
   return Array.from({ length: count }, (_, i) => {
@@ -131,7 +131,7 @@ const fetchWispPapers = async (query: string, wisp: WispConfig): Promise<WispPap
   const res = await fetch(`${wisp.baseUrl.replace(/\/$/, '')}/v1/academic`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ prompt: query, question: '', max_papers: 10 }),
+    body: JSON.stringify({ prompt: query, question: '', max_papers: 40 }),
   });
 
   if (!res.ok) throw new Error(`WISP ${res.status}`);
@@ -214,7 +214,7 @@ export function Dashboard() {
 
   // Realistic estimate when WISP is active: ~7 unique papers per pass after dedup
   const wispEstimate = useMemo(
-    () => (wispConfigured ? Math.min(settings.searchDepth * 7, 140) : null),
+    () => (wispConfigured ? Math.round(settings.searchDepth * 40 * 0.65) : null),
     [wispConfigured, settings.searchDepth],
   );
   const mockEstimate = useMemo(() => getEstimate(settings), [settings]);
@@ -313,7 +313,7 @@ export function Dashboard() {
 
     if (wispConfigured) {
       // ── Real WISP academic search ────────────────────────────────────────
-      const passes = Math.min(settings.searchDepth, 20);
+      const passes = settings.searchDepth;
       const queries = generateSubQueries(settings.topic, finalTopic, passes);
       const seenDois = new Set<string>();
       let totalCount = 0;
