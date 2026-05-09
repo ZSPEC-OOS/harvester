@@ -46,8 +46,8 @@ export function ApiConfigCard({ config, onChange }: Props) {
     <GlassCard className="p-4">
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-white">AI Provider</h3>
-          <p className="mt-0.5 text-xs text-slate-400">OpenAI-compatible endpoint for topic expansion</p>
+          <h3 className="text-sm font-semibold text-[#F3F6FB]">AI Provider</h3>
+          <p className="mt-0.5 text-xs text-[#94A3B8]">OpenAI-compatible endpoint for topic expansion</p>
         </div>
         {isConfigured && (
           <span className="shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] text-emerald-300">
@@ -58,46 +58,46 @@ export function ApiConfigCard({ config, onChange }: Props) {
 
       <div className="space-y-2.5">
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="api-nickname">
+          <label className="mb-1 block text-xs font-medium text-[#94A3B8]" htmlFor="api-nickname">
             Nickname
           </label>
           <input
             id="api-nickname"
             value={config.nickname}
             onChange={set('nickname')}
-            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
+            className="ds-input"
             placeholder="e.g. OpenAI, Groq, Local Ollama"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="api-base-url">
+          <label className="mb-1 block text-xs font-medium text-[#94A3B8]" htmlFor="api-base-url">
             Base URL
           </label>
           <input
             id="api-base-url"
             value={config.baseUrl}
             onChange={set('baseUrl')}
-            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
+            className="ds-input"
             placeholder="https://api.openai.com/v1"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="api-model-id">
+          <label className="mb-1 block text-xs font-medium text-[#94A3B8]" htmlFor="api-model-id">
             Model ID
           </label>
           <input
             id="api-model-id"
             value={config.modelId}
             onChange={set('modelId')}
-            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
+            className="ds-input"
             placeholder="gpt-4o, claude-sonnet-4-6, llama3"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="api-key">
+          <label className="mb-1 block text-xs font-medium text-[#94A3B8]" htmlFor="api-key">
             API Key
           </label>
           <div className="relative">
@@ -106,7 +106,7 @@ export function ApiConfigCard({ config, onChange }: Props) {
               type={showKey ? 'text' : 'password'}
               value={config.apiKey}
               onChange={set('apiKey')}
-              className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 pr-9 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
+              className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 pr-9 text-sm text-[#F3F6FB] placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
               placeholder="sk-…"
             />
             <button

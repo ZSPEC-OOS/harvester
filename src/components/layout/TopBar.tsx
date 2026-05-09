@@ -8,13 +8,13 @@ type Props = {
 
 export function TopBar({ onMenuClick, isRunning, wispConfigured }: Props) {
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#060913]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-[rgba(120,140,180,0.15)] bg-[rgba(6,14,30,0.82)] backdrop-blur-xl">
       <div className="relative mx-auto flex max-w-[1360px] items-center px-4 py-3 sm:px-6">
         {/* Left — menu */}
         <button
           type="button"
           onClick={onMenuClick}
-          className="rounded-lg border border-white/15 bg-white/5 p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
+          className="rounded-lg border border-[rgba(120,140,180,0.24)] bg-[rgba(13,24,48,0.7)] p-2 text-slate-300 transition hover:bg-[rgba(19,32,60,0.92)] hover:text-[#F3F6FB]"
           aria-label="Open settings"
         >
           <Settings size={18} />
@@ -23,12 +23,12 @@ export function TopBar({ onMenuClick, isRunning, wispConfigured }: Props) {
         {/* Center — title (absolute so it's truly centred regardless of badge width) */}
         <div className="absolute left-1/2 -translate-x-1/2 text-center">
           <h1
-            className="text-2xl font-semibold text-white sm:text-3xl"
+            className="text-2xl font-semibold text-[#F3F6FB] sm:text-3xl"
             style={{ fontFamily: "'EB Garamond', serif" }}
           >
             DeepScholar
           </h1>
-          <p className="text-[10px] tracking-[0.25em] text-slate-500 uppercase">Research Optimized</p>
+          <p className="text-[10px] tracking-[0.24em] text-[#64748B] uppercase">Research Optimized</p>
         </div>
 
         {/* Right — status badge (only when meaningful) */}
