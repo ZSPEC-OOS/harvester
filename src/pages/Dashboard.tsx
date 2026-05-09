@@ -280,8 +280,10 @@ export function Dashboard() {
       const queries = generateSubQueries(settings.topic, finalTopic, passes);
       const seenDois = new Set<string>();
       let totalCount = 0;
+      let emptyStreak = 0;
+      const MAX_EMPTY_STREAK = 3;
 
-      setLines((prev) => [...prev, `[${stamp()}] Starting WISP academic search — ${passes} passes across OpenAlex, arXiv, Semantic Scholar`]);
+      setLines((prev) => [...prev, `[${stamp()}] Starting WISP academic search — up to ${passes} passes across OpenAlex, arXiv, Semantic Scholar`]);
 
       for (let i = 0; i < queries.length; i++) {
         if (cancelRef.current) break;
@@ -292,13 +294,14 @@ export function Dashboard() {
           const papers = await fetchWispPapers(queries[i], settings.wispConfig);
 
           const newPapers = papers.filter((p) => {
-            if (!p.doi) return true; // no DOI to dedup on, keep it
+            if (!p.doi) return true;
             if (seenDois.has(p.doi)) return false;
             seenDois.add(p.doi);
             return true;
           });
 
           if (newPapers.length > 0) {
+            emptyStreak = 0;
             const formatted = newPapers.map((p, j) =>
               formatPaperCitation(p, totalCount + j + 1, settings.referenceStyle),
             );
@@ -310,6 +313,12 @@ export function Dashboard() {
               ...prev,
               `[${stamp()}] Pass ${i + 1}/${passes}: +${newPapers.length} papers (${providers})`,
             ]);
+          } else {
+            emptyStreak += 1;
+            if (emptyStreak >= MAX_EMPTY_STREAK) {
+              setLines((prev) => [...prev, `[${stamp()}] No new references found after ${MAX_EMPTY_STREAK} consecutive passes — sources exhausted`]);
+              break;
+            }
           }
         } catch (err) {
           setLines((prev) => [...prev, `[${stamp()}] Pass ${i + 1} error: ${String(err)}`]);
@@ -320,7 +329,9 @@ export function Dashboard() {
       setIsRunning(false);
       setLines((prev) => [
         ...prev,
-        `[${stamp()}] ${cancelRef.current ? 'Stopped' : 'Complete'}: ${totalCount} unique papers`,
+        cancelRef.current
+          ? `[${stamp()}] Stopped by user: ${totalCount} unique papers`
+          : `[${stamp()}] Search complete: ${totalCount} unique papers`,
       ]);
   };
 

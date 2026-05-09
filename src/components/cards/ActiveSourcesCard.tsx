@@ -37,7 +37,7 @@ export function ActiveSourcesCard({ estimatedPapers }: Props) {
         <div className="text-left">
           <h3 className="text-sm font-semibold text-white">Reference Sources</h3>
           <p className="text-xs text-slate-400">
-            {SOURCES.length} active · ~{estimatedPapers.toLocaleString()} refs
+            {SOURCES.length} active · up to ~{estimatedPapers.toLocaleString()} refs
           </p>
         </div>
         {open ? (
