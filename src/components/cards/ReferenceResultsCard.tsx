@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
+import { FileText } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 
-// Matches WispPaper in Dashboard.tsx
 type WispPaper = {
   title: string;
   doi: string | null;
@@ -15,10 +15,10 @@ type WispPaper = {
 type SortOrder = 'discovery' | 'year-desc' | 'year-asc';
 
 const styleLabelMap: Record<string, string> = {
-  apa: 'APA',
-  mla: 'MLA',
-  chicago: 'Chicago',
-  vancouver: 'Vancouver',
+  apa:        'APA',
+  mla:        'MLA',
+  chicago:    'Chicago',
+  vancouver:  'Vancouver',
   'doi-only': 'DOI only',
 };
 
@@ -31,18 +31,12 @@ const formatCitation = (paper: WispPaper, index: number, style: string): string 
   const link = paper.doi ? `https://doi.org/${paper.doi}` : paper.url;
 
   switch (style) {
-    case 'apa':
-      return `${index}. ${authorStr} (${year}). ${paper.title}.`;
-    case 'mla':
-      return `${index}. ${authorStr}. "${paper.title}." ${year}.`;
-    case 'chicago':
-      return `${index}. ${authorStr}. "${paper.title}." ${year}.`;
-    case 'vancouver':
-      return `${index}. ${authorStr}. ${paper.title}. ${year}.`;
-    case 'doi-only':
-      return `${index}. ${paper.doi ?? link}`;
-    default:
-      return `${index}. ${authorStr} (${year}). ${paper.title}.`;
+    case 'apa':       return `${index}. ${authorStr} (${year}). ${paper.title}.`;
+    case 'mla':       return `${index}. ${authorStr}. "${paper.title}." ${year}.`;
+    case 'chicago':   return `${index}. ${authorStr}. "${paper.title}." ${year}.`;
+    case 'vancouver': return `${index}. ${authorStr}. ${paper.title}. ${year}.`;
+    case 'doi-only':  return `${index}. ${paper.doi ?? link}`;
+    default:          return `${index}. ${authorStr} (${year}). ${paper.title}.`;
   }
 };
 
@@ -53,7 +47,12 @@ type Props = {
   isVerifying?: boolean;
 };
 
-export function ReferenceResultsCard({ papers, referenceStyle, isRunning = false, isVerifying = false }: Props) {
+export function ReferenceResultsCard({
+  papers,
+  referenceStyle,
+  isRunning = false,
+  isVerifying = false,
+}: Props) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('discovery');
   const style = styleLabelMap[referenceStyle] ?? referenceStyle;
 
@@ -61,33 +60,56 @@ export function ReferenceResultsCard({ papers, referenceStyle, isRunning = false
     if (sortOrder === 'year-desc')
       return [...papers].sort((a, b) => (b.publication_year ?? 0) - (a.publication_year ?? 0));
     if (sortOrder === 'year-asc')
-      return [...papers].sort((a, b) => (a.publication_year ?? 9999) - (b.publication_year ?? 9999));
+      return [...papers].sort(
+        (a, b) => (a.publication_year ?? 9999) - (b.publication_year ?? 9999),
+      );
     return papers;
   }, [papers, sortOrder]);
 
   return (
     <GlassCard className="p-5">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <h2 className="text-base font-semibold text-white">References</h2>
-          {(isRunning || isVerifying) && (
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />
-          )}
-          <span className="text-xs text-slate-400">
-            {papers.length > 0 ? `${papers.length.toLocaleString()} · ${style}` : style}
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <span
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+            style={{ background: 'rgba(33,85,214,0.14)', color: '#6B9EFF' }}
+          >
+            <FileText size={13} />
           </span>
-          {isVerifying && <span className="text-xs text-amber-400">Verifying…</span>}
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold" style={{ color: '#F3F6FB' }}>
+              References
+            </h2>
+            {(isRunning || isVerifying) && (
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
+            )}
+            <span className="text-[11px]" style={{ color: '#64748B' }}>
+              {papers.length > 0 ? `${papers.length.toLocaleString()} · ${style}` : style}
+            </span>
+            {isVerifying && (
+              <span className="text-[11px]" style={{ color: '#FCD34D' }}>
+                Filtering…
+              </span>
+            )}
+          </div>
         </div>
 
         {papers.length > 0 && (
-          <div className="flex overflow-hidden rounded-md border border-white/10 text-[10px]">
+          <div
+            className="flex overflow-hidden rounded-md text-[10px]"
+            style={{ border: '1px solid rgba(120,140,180,0.14)' }}
+          >
             {(['discovery', 'year-desc', 'year-asc'] as const).map((o) => (
               <button
                 key={o}
                 onClick={() => setSortOrder(o)}
-                className={`px-2 py-1 transition ${
-                  sortOrder === o ? 'bg-white/15 text-white' : 'text-slate-500 hover:text-slate-300'
-                }`}
+                className="px-2 py-1 transition"
+                style={
+                  sortOrder === o
+                    ? { background: 'rgba(33,85,214,0.22)', color: '#E8EDF5' }
+                    : { color: '#64748B' }
+                }
               >
                 {o === 'discovery' ? 'Default' : o === 'year-desc' ? 'Year ↓' : 'Year ↑'}
               </button>
@@ -96,25 +118,38 @@ export function ReferenceResultsCard({ papers, referenceStyle, isRunning = false
         )}
       </div>
 
-      <div className="max-h-[520px] overflow-auto rounded-lg border border-white/10 bg-black/20 p-3">
+      {/* Results area */}
+      <div
+        className="max-h-[520px] overflow-auto rounded-lg p-3"
+        style={{
+          background: 'rgba(2, 6, 18, 0.65)',
+          border: '1px solid rgba(120,140,180,0.09)',
+          boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.35)',
+        }}
+      >
         {papers.length === 0 ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm" style={{ color: '#475569' }}>
             {isRunning ? 'Gathering references…' : 'Run DeepScholar to populate results here.'}
           </p>
         ) : (
           <div className="space-y-3">
             {sorted.map((paper, i) => (
-              <div key={paper.doi ?? paper.url ?? i} className="border-b border-white/5 pb-2.5 last:border-0 last:pb-0">
-                <p className="font-mono text-xs leading-relaxed text-slate-200 sm:text-sm">
+              <div
+                key={paper.doi ?? paper.url ?? i}
+                className="pb-2.5 last:pb-0"
+                style={{ borderBottom: '1px solid rgba(120,140,180,0.07)' }}
+              >
+                <p className="font-mono text-xs leading-relaxed sm:text-[13px]" style={{ color: '#C4CDD8' }}>
                   {formatCitation(paper, i + 1, referenceStyle)}
                 </p>
-                <div className="mt-1 flex flex-wrap gap-2">
+                <div className="mt-1.5 flex flex-wrap gap-2.5">
                   {paper.doi && (
                     <a
                       href={`https://doi.org/${paper.doi}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[10px] text-cyan-500 transition hover:text-cyan-300"
+                      className="text-[10px] font-medium transition"
+                      style={{ color: '#6B9EFF' }}
                     >
                       DOI ↗
                     </a>
@@ -124,7 +159,8 @@ export function ReferenceResultsCard({ papers, referenceStyle, isRunning = false
                       href={paper.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[10px] text-cyan-500 transition hover:text-cyan-300"
+                      className="text-[10px] font-medium transition"
+                      style={{ color: '#6B9EFF' }}
                     >
                       Link ↗
                     </a>
@@ -134,13 +170,16 @@ export function ReferenceResultsCard({ papers, referenceStyle, isRunning = false
                       href={paper.oa_pdf_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[10px] text-emerald-500 transition hover:text-emerald-300"
+                      className="text-[10px] font-medium transition"
+                      style={{ color: '#5DD3C2' }}
                     >
                       PDF ↗
                     </a>
                   )}
                   {paper.provider && (
-                    <span className="text-[10px] text-slate-600">{paper.provider}</span>
+                    <span className="text-[10px]" style={{ color: '#334155' }}>
+                      {paper.provider}
+                    </span>
                   )}
                 </div>
               </div>

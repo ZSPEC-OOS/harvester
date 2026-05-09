@@ -15,7 +15,11 @@ export function Slider({ value, min = 1, max = 10, onChange, id }: SliderProps) 
       max={max}
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="h-3 w-full accent-sky-500 sm:h-3.5"
+      className="h-1 w-full cursor-pointer appearance-none rounded-full"
+      style={{
+        accentColor: '#2155D6',
+        background: `linear-gradient(to right, #2155D6 ${((value - min) / (max - min)) * 100}%, rgba(120,140,180,0.18) 0%)`,
+      }}
     />
   );
 }

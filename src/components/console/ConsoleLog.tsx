@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Terminal } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 
 type Props = {
@@ -20,7 +20,13 @@ export function ConsoleLog({ lines }: Props) {
     () => (
       <pre
         ref={preRef}
-        className="max-h-48 overflow-auto rounded-lg bg-black/30 p-4 font-mono text-xs leading-relaxed text-slate-300"
+        className="max-h-48 overflow-auto rounded-lg p-4 font-mono text-xs leading-relaxed"
+        style={{
+          background: 'rgba(2, 5, 14, 0.72)',
+          border: '1px solid rgba(120,140,180,0.08)',
+          color: '#64A0D0',
+          boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.4)',
+        }}
       >
         {lines.join('\n')}
       </pre>
@@ -32,13 +38,20 @@ export function ConsoleLog({ lines }: Props) {
     <GlassCard className="overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left text-slate-300 transition hover:bg-white/5"
+        className="flex w-full items-center justify-between px-4 py-3 text-left transition"
+        style={{ color: '#64748B' }}
       >
-        <span className="font-mono text-xs tracking-wider text-slate-400">&gt;_ Activity Log</span>
-        {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        <span className="flex items-center gap-2 font-mono text-[11px] tracking-widest" style={{ color: '#3D5070' }}>
+          <Terminal size={11} style={{ color: '#4A6FA5' }} />
+          Activity Log
+        </span>
+        {open
+          ? <ChevronUp size={14} />
+          : <ChevronDown size={14} />
+        }
       </button>
 
-      {open && <div className="p-4 pt-0">{logContent}</div>}
+      {open && <div className="px-4 pb-4 pt-0">{logContent}</div>}
     </GlassCard>
   );
 }
