@@ -14,16 +14,17 @@ export function CacheStats({ gatheredCount, targetCount }: Props) {
 
   return (
     <GlassCard className="p-5">
-      <h2 className="mb-4 text-lg font-semibold text-white">Live Reference Progress</h2>
-      <div className="mx-auto flex w-full max-w-[220px] items-center justify-center">
-        <svg viewBox="0 0 180 180" className="h-44 w-44">
-          <circle cx="90" cy="90" r={radius} stroke="rgba(148,163,184,0.3)" strokeWidth="12" fill="none" />
+      <h2 className="mb-3 text-sm font-semibold text-white">Progress</h2>
+
+      <div className="mx-auto flex w-full max-w-[200px] items-center justify-center">
+        <svg viewBox="0 0 180 180" className="h-40 w-40">
+          <circle cx="90" cy="90" r={radius} stroke="rgba(148,163,184,0.15)" strokeWidth="10" fill="none" />
           <circle
             cx="90"
             cy="90"
             r={radius}
             stroke="url(#progressGradient)"
-            strokeWidth="12"
+            strokeWidth="10"
             fill="none"
             strokeLinecap="round"
             transform="rotate(-90 90 90)"
@@ -37,17 +38,24 @@ export function CacheStats({ gatheredCount, targetCount }: Props) {
               <stop offset="100%" stopColor="#8b5cf6" />
             </linearGradient>
           </defs>
-          <text x="90" y="84" textAnchor="middle" className="fill-white text-[24px] font-semibold">
+          <text x="90" y="86" textAnchor="middle" className="fill-white text-[26px] font-bold">
             {progress}%
           </text>
-          <text x="90" y="108" textAnchor="middle" className="fill-slate-300 text-[11px]">
-            gathered
+          <text x="90" y="106" textAnchor="middle" className="fill-slate-400 text-[11px]">
+            complete
           </text>
         </svg>
       </div>
-      <div className="space-y-1 text-sm text-slate-200">
-        <p>{gatheredCount.toLocaleString()} references gathered</p>
-        <p>{targetCount.toLocaleString()} target references</p>
+
+      <div className="mt-3 space-y-1 border-t border-white/10 pt-3">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-slate-400">Gathered</span>
+          <span className="font-medium text-white">{gatheredCount.toLocaleString()}</span>
+        </div>
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-slate-400">Target</span>
+          <span className="font-medium text-slate-300">{targetCount.toLocaleString()}</span>
+        </div>
       </div>
     </GlassCard>
   );

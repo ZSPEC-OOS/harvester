@@ -488,10 +488,7 @@ export function Dashboard() {
     () => (
       <div className="space-y-4">
         <GlassCard className="p-5">
-          <h2 className="mb-3 text-lg font-semibold text-white">Search Focus</h2>
-          <label className="mb-2 block text-sm text-slate-300" htmlFor="main-topic">
-            Search Focus Topic
-          </label>
+          <h2 className="mb-3 text-base font-semibold text-white">Research Topic</h2>
           <input
             id="main-topic"
             value={settings.topic}
@@ -502,69 +499,76 @@ export function Dashboard() {
               setExpandedTopicDraft('');
               setExpansionAccepted(false);
             }}
-            className="w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-sm text-white"
-            placeholder="Enter your topic"
+            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/40 focus:outline-none"
+            placeholder="e.g. foundation models for protein design"
           />
-          <div className="mt-3 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={processExpansion}
-              disabled={!settings.topic.trim() || isExpanding}
-              className="rounded-lg border border-cyan-300/50 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isExpanding ? 'Processing…' : 'Process Expansion'}
-            </button>
-            {wispConfigured && !isExpanding && (
-              <span className="text-xs text-emerald-400">via WISP</span>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={processExpansion}
+            disabled={!settings.topic.trim() || isExpanding}
+            className="mt-3 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {isExpanding ? 'Processing…' : 'Process Expansion'}
+          </button>
 
           {expandedTopic && (
             <div className="mt-4 space-y-3">
-              <label className="block text-sm text-slate-300">Expanded Topic</label>
-              <textarea
-                value={expandedTopic}
-                readOnly
-                className="min-h-[130px] w-full rounded-lg border border-white/20 bg-slate-950/60 px-4 py-3 text-sm text-slate-100"
-              />
-              <label className="block text-sm text-slate-300">Refinement</label>
-              <textarea
-                value={expandedTopicDraft}
-                onChange={(e) => {
-                  setExpandedTopicDraft(e.target.value);
-                  setExpansionAccepted(false);
-                }}
-                className="min-h-[130px] w-full rounded-lg border border-white/20 bg-slate-900/60 px-4 py-3 text-sm text-slate-100"
-              />
+              <div>
+                <p className="mb-1.5 text-xs font-medium text-slate-400">Expanded Scope</p>
+                <textarea
+                  value={expandedTopic}
+                  readOnly
+                  className="min-h-[110px] w-full rounded-lg border border-white/10 bg-slate-950/60 px-4 py-3 text-xs leading-relaxed text-slate-300"
+                />
+              </div>
+              <div>
+                <p className="mb-1.5 text-xs font-medium text-slate-400">Refine (optional)</p>
+                <textarea
+                  value={expandedTopicDraft}
+                  onChange={(e) => {
+                    setExpandedTopicDraft(e.target.value);
+                    setExpansionAccepted(false);
+                  }}
+                  className="min-h-[110px] w-full rounded-lg border border-white/15 bg-slate-900/60 px-4 py-3 text-xs leading-relaxed text-slate-100 focus:border-cyan-500/40 focus:outline-none"
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => {
                   setExpandedTopic(expandedTopicDraft.trim() || expandedTopic);
                   setExpansionAccepted(true);
                 }}
-                className="rounded-lg border border-emerald-300/50 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200"
+                className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
+                  expansionAccepted
+                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                    : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+                }`}
               >
-                Accept
+                {expansionAccepted ? 'Accepted ✓' : 'Accept & Confirm'}
               </button>
             </div>
           )}
         </GlassCard>
 
         <GlassCard className="p-5">
-          <h2 className="mb-3 text-lg font-semibold text-white">Deep Research Process</h2>
-          <div className="space-y-2">
+          <h2 className="mb-3 text-base font-semibold text-white">Research Steps</h2>
+          <div className="space-y-1.5">
             {deepResearchProcess.map((item, i) => {
               const isActive = isRunning && i === activeStep;
               const isDone = !isRunning && references.length > 0 && i <= activeStep;
               return (
                 <div
                   key={item}
-                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm ${isActive ? 'border-cyan-300/60 bg-cyan-500/10' : 'border-white/10 bg-white/5'}`}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                    isActive ? 'bg-cyan-500/10 text-white' : 'text-slate-400'
+                  }`}
                 >
                   <span
-                    className={`h-2.5 w-2.5 rounded-full ${isActive ? 'animate-pulse bg-cyan-300' : isDone ? 'bg-emerald-300' : 'bg-slate-500'}`}
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      isActive ? 'animate-pulse bg-cyan-400' : isDone ? 'bg-emerald-400' : 'bg-slate-600'
+                    }`}
                   />
-                  <span className="text-slate-100">{item}</span>
+                  {item}
                 </div>
               );
             })}
@@ -611,7 +615,7 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-transparent text-white">
-      <TopBar onMenuClick={() => setSettingsMenuOpen(true)} />
+      <TopBar onMenuClick={() => setSettingsMenuOpen(true)} isRunning={isRunning} wispConfigured={wispConfigured} />
       <Container>
         <div className="relative grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,800px)_340px] xl:items-start">
           {cards}
