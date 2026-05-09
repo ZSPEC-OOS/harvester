@@ -3,14 +3,18 @@ import { GlassCard } from '../ui/GlassCard';
 type Props = {
   gatheredCount: number;
   targetCount: number;
+  sourceCounts?: Record<string, number>;
 };
 
-export function CacheStats({ gatheredCount, targetCount }: Props) {
+export function CacheStats({ gatheredCount, targetCount, sourceCounts = {} }: Props) {
   const safeTarget = Math.max(1, targetCount);
   const progress = Math.min(100, Math.round((gatheredCount / safeTarget) * 100));
   const radius = 62;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference - (progress / 100) * circumference;
+
+  const sourceEntries = Object.entries(sourceCounts).sort(([, a], [, b]) => b - a);
+  const maxCount = sourceEntries.length > 0 ? sourceEntries[0][1] : 1;
 
   return (
     <GlassCard className="p-5">
@@ -57,6 +61,24 @@ export function CacheStats({ gatheredCount, targetCount }: Props) {
           <span className="font-medium text-slate-300">{targetCount.toLocaleString()}</span>
         </div>
       </div>
+
+      {sourceEntries.length > 0 && (
+        <div className="mt-3 space-y-1.5 border-t border-white/10 pt-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">By Source</p>
+          {sourceEntries.map(([provider, count]) => (
+            <div key={provider} className="flex items-center gap-2">
+              <span className="w-20 shrink-0 truncate text-[10px] text-slate-400">{provider}</span>
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
+                <div
+                  className="h-1.5 rounded-full bg-cyan-500/60 transition-all duration-500"
+                  style={{ width: `${Math.round((count / maxCount) * 100)}%` }}
+                />
+              </div>
+              <span className="w-6 text-right text-[10px] text-slate-400">{count}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </GlassCard>
   );
 }
