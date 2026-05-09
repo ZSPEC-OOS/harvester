@@ -27,7 +27,7 @@ export function SourceSelectionCard({ sources, setSources, estimatedPapers }: Pr
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-2.5">
         <Toggle id="src-crossref" checked={sources.crossref} onChange={(v) => set('crossref', v)} label="Crossref" />
         <Toggle id="src-scholar" checked={sources.scholar} onChange={(v) => set('scholar', v)} label="Google Scholar" />
         <Toggle id="src-pubmed" checked={sources.pubmed} onChange={(v) => set('pubmed', v)} label="PubMed" />
