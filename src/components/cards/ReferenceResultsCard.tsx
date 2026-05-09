@@ -69,11 +69,11 @@ export function ReferenceResultsCard({ papers, referenceStyle, isRunning = false
     <GlassCard className="p-5">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-base font-semibold text-white">References</h2>
+          <h2 className="text-base font-semibold text-[#F3F6FB]">References</h2>
           {(isRunning || isVerifying) && (
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />
           )}
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-[#94A3B8]">
             {papers.length > 0 ? `${papers.length.toLocaleString()} · ${style}` : style}
           </span>
           {isVerifying && <span className="text-xs text-amber-400">Verifying…</span>}
@@ -86,7 +86,7 @@ export function ReferenceResultsCard({ papers, referenceStyle, isRunning = false
                 key={o}
                 onClick={() => setSortOrder(o)}
                 className={`px-2 py-1 transition ${
-                  sortOrder === o ? 'bg-white/15 text-white' : 'text-slate-500 hover:text-slate-300'
+                  sortOrder === o ? 'bg-white/15 text-[#F3F6FB]' : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
                 {o === 'discovery' ? 'Default' : o === 'year-desc' ? 'Year ↓' : 'Year ↑'}
@@ -99,7 +99,7 @@ export function ReferenceResultsCard({ papers, referenceStyle, isRunning = false
       <div className="max-h-[520px] overflow-auto rounded-lg border border-white/10 bg-black/20 p-3">
         {papers.length === 0 ? (
           <p className="text-sm text-slate-500">
-            {isRunning ? 'Gathering references…' : 'Run DeepScholar to populate results here.'}
+            {isRunning ? 'Gathering references…' : 'Process Expansion to populate results here.'}
           </p>
         ) : (
           <div className="space-y-3">

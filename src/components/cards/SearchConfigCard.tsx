@@ -24,31 +24,31 @@ type Props = {
 export function SearchConfigCard(props: Props) {
   return (
     <GlassCard className="p-4">
-      <h3 className="mb-3 text-sm font-semibold text-white">Search Configuration</h3>
+      <h3 className="mb-3 text-sm font-semibold text-[#F3F6FB]">Search Configuration</h3>
 
       <div className="space-y-2.5">
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="topic">
+          <label className="mb-1 block text-xs font-medium text-[#94A3B8]" htmlFor="topic">
             Topic
           </label>
           <input
             id="topic"
             value={props.topic}
             onChange={(e) => props.setTopic(e.target.value)}
-            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none"
+            className="ds-input"
             placeholder="e.g. foundation models for protein design"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="reference-style">
+          <label className="mb-1 block text-xs font-medium text-[#94A3B8]" htmlFor="reference-style">
             Citation Style
           </label>
           <select
             id="reference-style"
             value={props.referenceStyle}
             onChange={(e) => props.setReferenceStyle(e.target.value)}
-            className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
+            className="ds-input"
           >
             <option value="apa">APA</option>
             <option value="mla">MLA</option>
@@ -60,7 +60,7 @@ export function SearchConfigCard(props: Props) {
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="start-year">
+            <label className="mb-1 block text-xs font-medium text-[#94A3B8]" htmlFor="start-year">
               Start Year
             </label>
             <input
@@ -70,11 +70,11 @@ export function SearchConfigCard(props: Props) {
               max={props.endYear}
               value={props.startYear}
               onChange={(e) => props.setStartYear(Number(e.target.value))}
-              className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
+              className="ds-input"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="end-year">
+            <label className="mb-1 block text-xs font-medium text-[#94A3B8]" htmlFor="end-year">
               End Year
             </label>
             <input
@@ -84,14 +84,14 @@ export function SearchConfigCard(props: Props) {
               max={new Date().getFullYear()}
               value={props.endYear}
               onChange={(e) => props.setEndYear(Number(e.target.value))}
-              className="w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
+              className="ds-input"
             />
           </div>
         </div>
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label className="text-xs font-medium text-slate-400" htmlFor="depth">
+            <label className="text-xs font-medium text-[#94A3B8]" htmlFor="depth">
               Search Breadth
             </label>
             <span className="text-xs text-slate-300">{props.searchDepth} passes</span>

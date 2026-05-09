@@ -10,16 +10,27 @@
 
 body {
   @apply m-0 min-h-screen bg-bg font-sans text-white antialiased;
-  background-color: #05070d;
+  background-color: #050816;
   background-image:
-    radial-gradient(circle at 15% -5%, rgba(186, 126, 255, 0.2), transparent 35%),
-    radial-gradient(circle at 85% 0%, rgba(123, 207, 255, 0.14), transparent 30%),
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: auto, auto, 34px 34px, 34px 34px;
+    radial-gradient(circle at 18% 16%, rgba(58, 112, 214, 0.14), transparent 45%),
+    radial-gradient(circle at 78% 22%, rgba(32, 84, 176, 0.1), transparent 42%),
+    linear-gradient(165deg, #050816 0%, #07111f 50%, #0a1630 100%);
+  background-size: auto, auto, auto;
 }
 
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+
+
+@layer components {
+  .ds-panel {
+    @apply rounded-2xl border backdrop-blur-xl;
+    border-color: rgba(120,140,180,0.18);
+    background: linear-gradient(180deg, rgba(14,26,50,0.94) 0%, rgba(8,18,38,0.92) 100%);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(183, 205, 239, 0.09);
+  }
+  .ds-input { @apply w-full rounded-lg px-3 py-2 text-sm text-[#E6EDF8] placeholder:text-[#64748B] focus:outline-none; border:1px solid rgba(120,140,180,0.2); background:rgba(7,14,29,0.82); box-shadow: inset 0 1px 2px rgba(0,0,0,0.45); }
+  .ds-input:focus { border-color: rgba(74, 171, 218, 0.6); box-shadow: inset 0 1px 2px rgba(0,0,0,0.55), 0 0 0 1px rgba(74, 171, 218, 0.35); }
 }
