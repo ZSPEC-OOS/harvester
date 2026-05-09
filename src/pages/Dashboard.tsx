@@ -84,67 +84,6 @@ const expandTopicLocally = (topic: string) => {
   ].join('\n\n');
 };
 
-const AUTHORS = [
-  'Chen, L., Wang, Y., & Zhang, H.',
-  'Patel, R., Kumar, A., & Singh, M.',
-  'Johnson, E., Brown, K., & Davis, T.',
-  'Müller, J., Schmidt, A., & Weber, F.',
-  'Liu, X., Li, J., & Wu, Q.',
-  'García, M., López, C., & Martínez, R.',
-  'Anderson, P., Thompson, S., & Wilson, B.',
-  'Nakamura, K., Tanaka, Y., & Sato, R.',
-  'Kim, S., Park, J., & Lee, H.',
-  'Okafor, N., Diallo, A., & Mensah, K.',
-  'Petrov, I., Ivanova, E., & Sokolov, D.',
-  'Ferreira, B., Oliveira, C., & Santos, P.',
-];
-
-const JOURNALS = [
-  'Nature Communications',
-  'PLOS ONE',
-  'Science Advances',
-  'Frontiers in Research',
-  'Journal of Computational Science',
-  'International Journal of Applied Research',
-  'Scientific Reports',
-  'Applied Sciences',
-  'Research in Focus',
-  'Advances in Theory and Practice',
-  'Interdisciplinary Research Letters',
-  'Current Research Perspectives',
-];
-
-const TITLE_TEMPLATES = [
-  (t: string) => `A systematic review of ${t}`,
-  (t: string) => `Advances in ${t}: methods and applications`,
-  (t: string) => `${t}: a comprehensive analysis`,
-  (t: string) => `Evaluating approaches to ${t}`,
-  (t: string) => `Benchmarking techniques for ${t}`,
-  (t: string) => `${t} — empirical findings and future directions`,
-  (t: string) => `Deep investigation of ${t}`,
-  (t: string) => `Comparative study of methods in ${t}`,
-  (t: string) => `${t}: current state and open challenges`,
-  (t: string) => `Novel perspectives on ${t}`,
-];
-
-const buildMockReferences = (settings: Settings, _expandedTopic: string, targetCount: number) => {
-  const count = Math.max(0, Math.min(targetCount, 50000));
-  const style = styleLabelMap[settings.referenceStyle] ?? settings.referenceStyle;
-  const topic = settings.topic.trim();
-
-  return Array.from({ length: count }, (_, i) => {
-    const year = settings.startYear + (i % Math.max(1, settings.endYear - settings.startYear + 1));
-    const authors = AUTHORS[i % AUTHORS.length];
-    const journal = JOURNALS[i % JOURNALS.length];
-    const titleFn = TITLE_TEMPLATES[i % TITLE_TEMPLATES.length];
-    const title = titleFn(topic);
-    const doi = `10.${1200 + (i % 700)}/ds.${year}.${(i + 1).toString().padStart(5, '0')}`;
-
-    if (settings.referenceStyle === 'doi-only') return `${i + 1}. ${doi}`;
-    return `${i + 1}. [${style}] ${authors} (${year}). ${title}. ${journal}. https://doi.org/${doi}`;
-  });
-};
-
 const formatPaperCitation = (paper: WispPaper, index: number, style: string): string => {
   const authorStr =
     paper.authors.length > 0
@@ -207,19 +146,6 @@ const generateSubQueries = (topic: string, expandedTopic: string, count: number)
   return queries.slice(0, count);
 };
 
-const getEstimate = (settings: Settings) => {
-  const yearSpan = Math.max(1, settings.endYear - settings.startYear + 1);
-  const topicWordCount = settings.topic.trim().split(/\s+/).filter(Boolean).length;
-
-  let estimate = Math.round(5.0 * settings.searchDepth * yearSpan * Math.max(1, topicWordCount * 0.9));
-
-  if (settings.onlyOpenAccess) estimate = Math.round(estimate * 0.58);
-  if (!settings.includePreprints) estimate = Math.round(estimate * 0.9);
-  if (settings.excludePatents) estimate = Math.round(estimate * 0.95);
-
-  return Math.max(0, estimate);
-};
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function Dashboard() {
@@ -246,41 +172,30 @@ export function Dashboard() {
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
-  const timerRef = useRef<number | null>(null);
   const cancelRef = useRef(false);
 
   useEffect(() => {
     localStorage.setItem('paper-harvester-settings', JSON.stringify(settings));
   }, [settings]);
 
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) window.clearInterval(timerRef.current);
-    };
-  }, []);
-
   const stamp = () => new Date().toLocaleTimeString('en-US', { hour12: false });
 
   const wispConfigured = Boolean(settings.wispConfig.baseUrl.trim());
   const apiConfigured = Boolean(settings.apiConfig.baseUrl.trim() && settings.apiConfig.apiKey.trim());
 
-  // Realistic estimate when WISP is active: ~7 unique papers per pass after dedup
-  const wispEstimate = useMemo(
-    () => (wispConfigured ? Math.round(settings.searchDepth * 40 * 0.65) : null),
+  const displayEstimate = useMemo(
+    () => (wispConfigured ? Math.round(settings.searchDepth * 40 * 0.65) : 0),
     [wispConfigured, settings.searchDepth],
   );
-  const mockEstimate = useMemo(() => getEstimate(settings), [settings]);
-  const displayEstimate = wispEstimate ?? mockEstimate;
 
   const validationError = useMemo(() => {
+    if (!wispConfigured) return 'WISP backend required — add your WISP URL in settings to run a search.';
     if (!settings.topic.trim()) return 'Search Focus Topic is required.';
     if (!expandedTopic.trim() || !expansionAccepted) return 'Please process expansion and click Accept before running.';
     if (settings.startYear > settings.endYear) return 'Start year is later than end year.';
     if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR) return `Year range must be between 1900 and ${CURRENT_YEAR}.`;
-    if (settings.externalAiEnabled && !apiConfigured && !wispConfigured)
-      return 'External AI is enabled but no AI provider or WISP backend is configured.';
     return null;
-  }, [expandedTopic, expansionAccepted, settings, apiConfigured, wispConfigured]);
+  }, [expandedTopic, expansionAccepted, settings, wispConfigured]);
 
   // ── Topic expansion ──────────────────────────────────────────────────────
 
@@ -342,10 +257,6 @@ export function Dashboard() {
     // Stop if already running
     if (isRunning) {
       cancelRef.current = true;
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
       setIsRunning(false);
       setLines((prev) => [...prev, `[${stamp()}] Run cancelled by user`]);
       return;
@@ -411,51 +322,6 @@ export function Dashboard() {
         ...prev,
         `[${stamp()}] ${cancelRef.current ? 'Stopped' : 'Complete'}: ${totalCount} unique papers`,
       ]);
-    } else {
-      // ── Mock generation (streaming via setInterval) ──────────────────────
-      const events = [
-        'Running deep research flow',
-        `Expanded focus accepted for: "${settings.topic.trim()}"`,
-        `Using style: ${styleLabelMap[settings.referenceStyle] ?? settings.referenceStyle}`,
-        `Streaming references for year range ${settings.startYear}-${settings.endYear}`,
-      ];
-
-      const generated = buildMockReferences(settings, finalTopic, mockEstimate);
-      let idx = 0;
-      let eventIdx = 0;
-
-      setLines((prev) => [...prev, `[${stamp()}] Starting DeepScholar run (mock mode — configure WISP for real results)`]);
-
-      timerRef.current = window.setInterval(() => {
-        const chunk = generated.slice(idx, idx + 12);
-        if (chunk.length > 0) {
-          setReferences((prev) => [...prev, ...chunk]);
-          idx += chunk.length;
-        }
-
-        setActiveStep(
-          Math.min(deepResearchProcess.length - 1, Math.floor((idx / Math.max(generated.length, 1)) * deepResearchProcess.length)),
-        );
-
-        if (eventIdx < events.length) {
-          setLines((prev) => [...prev, `[${stamp()}] ${events[eventIdx]}`]);
-          eventIdx += 1;
-        }
-
-        if (idx >= generated.length) {
-          setIsRunning(false);
-          setActiveStep(deepResearchProcess.length - 1);
-          setLines((prev) => [
-            ...prev,
-            `[${stamp()}] Completed list with ${generated.length.toLocaleString()} mock references`,
-          ]);
-          if (timerRef.current) {
-            window.clearInterval(timerRef.current);
-            timerRef.current = null;
-          }
-        }
-      }, 350);
-    }
   };
 
   // ── Export ───────────────────────────────────────────────────────────────
