@@ -98,8 +98,8 @@ export function SearchConfigCard(props: Props) {
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <span>1</span>
-            <Slider id="depth" value={props.searchDepth} onChange={props.setSearchDepth} min={1} max={20} />
-            <span>20</span>
+            <Slider id="depth" value={props.searchDepth} onChange={props.setSearchDepth} min={1} max={500} />
+            <span>500</span>
           </div>
         </div>
 
