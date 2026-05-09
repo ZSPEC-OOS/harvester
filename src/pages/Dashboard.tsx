@@ -136,6 +136,9 @@ const isPreprint = (p: WispPaper): boolean => {
 const normalizeTitle = (t: string): string =>
   t.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 60);
 
+const normalizeDoi = (doi: string): string =>
+  doi.replace(/^https?:\/\/doi\.org\//i, '').toLowerCase().trim();
+
 const buildExport = (
   papers: WispPaper[],
   topic: string,
@@ -393,8 +396,17 @@ const generateSubQueriesWithAi = async (
   if (!res.ok) throw new Error(`API ${res.status}`);
   const data = await res.json();
   const raw: string = data.choices?.[0]?.message?.content ?? '';
-  const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
-  const queries = Array.isArray(parsed.queries) ? parsed.queries : [];
+  let parsed: unknown = null;
+  try {
+    const jsonText = raw.replace(/```json|```/g, '').trim();
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : jsonText);
+  } catch {
+    return null;
+  }
+  const queries = Array.isArray((parsed as { queries?: unknown }).queries)
+    ? (parsed as { queries: unknown[] }).queries
+    : [];
   const clean: string[] = queries
     .map((q: unknown) => (typeof q === 'string' ? q.trim() : ''))
     .filter((q: string): q is string => typeof q === 'string' && q.length > 3);
@@ -745,24 +757,29 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
     setIsRunning(true);
 
     const passes = settings.searchDepth;
-    let queries = generateSubQueries(settings.topic, finalTopic, passes);
+    const localQueries = generateSubQueries(settings.topic, finalTopic, passes);
+
+    // Fire AI sub-query generation concurrently — WISP starts immediately on pass 1
+    // without waiting for the AI. AI queries are applied from the first pass where they
+    // resolve, giving true parallel execution between WISP and the attached model.
+    let resolvedAiQueries: string[] | null = null;
+    let aiQueriesLogged = false;
     if (apiConfigured) {
-      try {
-        const aiQueries = await generateSubQueriesWithAi(
-          settings.topic,
-          finalTopic,
-          passes,
-          settings.apiConfig,
-        );
-        if (aiQueries && aiQueries.length > 0) {
-          queries = aiQueries;
-          while (queries.length < passes) queries.push(settings.topic);
-          setLines((prev) => [...prev, `[${stamp()}] AI generated targeted sub-queries for parallel source retrieval`]);
-        }
-      } catch (err) {
-        setLines((prev) => [...prev, `[${stamp()}] AI sub-query generation failed (${String(err)}) — using local query planner`]);
-      }
+      generateSubQueriesWithAi(settings.topic, finalTopic, passes, settings.apiConfig)
+        .then((aiQueries) => {
+          if (aiQueries && aiQueries.length > 0) {
+            while (aiQueries.length < passes) aiQueries.push(settings.topic);
+            resolvedAiQueries = aiQueries;
+          }
+        })
+        .catch((err) => {
+          setLines((prev) => [
+            ...prev,
+            `[${stamp()}] AI sub-query generation failed (${String(err)}) — using local query planner`,
+          ]);
+        });
     }
+
     const seenDois = new Set<string>();
     const seenTitles = new Set<string>();
     let totalCount = 0;
@@ -776,20 +793,30 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
       `[${stamp()}] Starting search across WISP + PubMed + Europe PMC + CORE + ERIC — up to ${passes} passes`,
     ]);
 
-    for (let i = 0; i < queries.length; i++) {
+    for (let i = 0; i < passes; i++) {
       if (cancelRef.current) break;
 
+      // Use AI queries as soon as they resolve; fall back to local queries
+      const query = resolvedAiQueries?.[i] ?? localQueries[i] ?? settings.topic;
+      if (resolvedAiQueries && !aiQueriesLogged) {
+        aiQueriesLogged = true;
+        setLines((prev) => [
+          ...prev,
+          `[${stamp()}] AI targeted sub-queries ready — applying from pass ${i + 1}`,
+        ]);
+      }
+
       setActiveStep(
-        Math.min(deepResearchProcess.length - 1, Math.floor((i / queries.length) * deepResearchProcess.length)),
+        Math.min(deepResearchProcess.length - 1, Math.floor((i / passes) * deepResearchProcess.length)),
       );
 
       try {
         const settled = await Promise.allSettled([
-          fetchWispPapers(queries[i], settings.wispConfig),
-          fetchPubMed(queries[i]),
-          fetchEuropePmc(queries[i]),
-          fetchCORE(queries[i]),
-          fetchERIC(queries[i]),
+          fetchWispPapers(query, settings.wispConfig),
+          fetchPubMed(query),
+          fetchEuropePmc(query),
+          fetchCORE(query),
+          fetchERIC(query),
         ]);
         const fetched = settled.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 
@@ -803,11 +830,12 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
           return true;
         });
 
-        // Dedup by DOI, then title fallback
+        // Dedup by DOI (normalized), then title fallback
         const newPapers = filtered.filter((p) => {
           if (p.doi) {
-            if (seenDois.has(p.doi)) return false;
-            seenDois.add(p.doi);
+            const nd = normalizeDoi(p.doi);
+            if (seenDois.has(nd)) return false;
+            seenDois.add(nd);
             return true;
           }
           // No DOI — dedup by title
