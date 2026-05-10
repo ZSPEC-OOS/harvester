@@ -1,0 +1,54 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { buildMarkdownExport } from "@/server/export/markdown";
+import { buildBibtexExport } from "@/server/export/bibtex";
+import { buildJsonExport } from "@/server/export/json";
+import { buildCsvExport } from "@/server/export/csv";
+import { buildDocxExport } from "@/server/export/docx";
+import { buildPdfPlaceholder } from "@/server/export/pdf";
+import type { ExportFormat, ExportSession } from "@/server/export/types";
+
+function sanitizeFilename(topic: string): string {
+  return topic.replace(/[^a-zA-Z0-9\s_-]/g, "").trim().replace(/\s+/g, "_").slice(0, 50) || "research";
+}
+
+export async function POST(req: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
+  const { sessionId } = await params;
+  const body = await req.json();
+  const { userId, format } = body as { userId: string; format: ExportFormat };
+  if (!userId || !format) return NextResponse.json({ error: "Missing userId or format" }, { status: 400 });
+
+  const session = await prisma.researchSession.findFirst({ where: { id: sessionId, userId } });
+  if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+
+  const exportSession: ExportSession = {
+    id: session.id,
+    topic: session.topic,
+    status: session.status,
+    citationStyle: session.citationStyle,
+    createdAt: session.createdAt,
+    updatedAt: session.updatedAt,
+    finalReport: session.finalReport,
+    plan: session.plan,
+    candidateSources: session.candidateSources,
+    rankedSources: session.rankedSources,
+    verifiedCitations: session.verifiedCitations,
+  };
+
+  const base = sanitizeFilename(session.topic);
+  let data: string | Buffer;
+  let mime = "text/plain";
+  let suffix = "_report.txt";
+
+  switch (format) {
+    case "markdown": data = buildMarkdownExport(exportSession); mime = "text/markdown"; suffix = "_report.md"; break;
+    case "bibtex": data = buildBibtexExport(exportSession); mime = "application/x-bibtex"; suffix = "_references.bib"; break;
+    case "json": data = buildJsonExport(exportSession); mime = "application/json"; suffix = "_session.json"; break;
+    case "csv": data = buildCsvExport(exportSession); mime = "text/csv"; suffix = "_evidence.csv"; break;
+    case "docx": data = await buildDocxExport(exportSession); mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"; suffix = "_report.docx"; break;
+    case "pdf": data = buildPdfPlaceholder(exportSession); mime = "text/html"; suffix = "_report.html"; break;
+    default: return NextResponse.json({ error: "Unsupported format" }, { status: 400 });
+  }
+
+  return new NextResponse(data, { headers: { "Content-Type": mime, "Content-Disposition": `attachment; filename=\"${base}${suffix}\"` } });
+}
