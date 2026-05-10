@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
+import { sessionStore } from "@/lib/local-session-store";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { getProviderForUser } from "@/lib/ai/router";
-import { logUsageEvent } from "@/lib/ai/usage";
-import { estimateTokensFromChars } from "@/lib/ai/cost";
+import { getProviderFromConfig } from "@/lib/ai/router";
 import { PLANNER_SYSTEM_PROMPT, PLANNER_USER_PROMPT_TEMPLATE } from "@/lib/prompts";
 
 const planSchema = z.object({
@@ -26,7 +24,7 @@ function applyTemplate(template: string, values: Record<string, string | number 
 
 export async function POST(_req: Request, { params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
-  const session = await prisma.researchSession.findUnique({ where: { id: sessionId } });
+  const session = sessionStore.get(sessionId);
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
 
   const rateLimit = enforceRateLimit(session.userId, "steps");
@@ -43,29 +41,14 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
     sourceCount: session.sourceCount,
   });
 
-  const provider = await getProviderForUser(session.userId);
+  const provider = getProviderFromConfig(session.apiKey, session.baseUrl, session.modelId);
 
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
       try {
         const plan = await provider.generateObjectValidated(userPrompt, planSchema, PLANNER_SYSTEM_PROMPT);
-
-        await prisma.researchSession.update({
-          where: { id: sessionId },
-          data: { plan: plan as unknown as import("@prisma/client").Prisma.InputJsonValue, status: "searching" },
-        });
-
-        await logUsageEvent({
-          userId: session.userId,
-          sessionId,
-          eventType: "planner_complete",
-          provider: provider.provider,
-          model: provider.model,
-          promptTokens: estimateTokensFromChars(userPrompt.length + PLANNER_SYSTEM_PROMPT.length),
-          completionTokens: estimateTokensFromChars(JSON.stringify(plan).length),
-        });
-
+        sessionStore.update(sessionId, { plan: plan as Record<string, unknown>, status: "searching" });
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, plan })}\n\n`));
       } catch (error) {
         const message = error instanceof Error ? error.message : "Planner failed";

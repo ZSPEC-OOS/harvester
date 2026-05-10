@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { sessionStore } from "@/lib/local-session-store";
 
 export async function GET(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get("userId");
@@ -7,21 +7,17 @@ export async function GET(req: NextRequest) {
   const limit = Number(req.nextUrl.searchParams.get("limit") || 20);
   if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
 
-  const sessions = await prisma.researchSession.findMany({
-    where: { userId, ...(projectId ? { projectId } : {}) },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    include: { project: true },
-  });
+  let sessions = sessionStore.listByUser(userId, limit);
+  if (projectId) sessions = sessions.filter((s) => s.projectId === projectId);
 
   return NextResponse.json(
-    sessions.map((s: any) => ({
+    sessions.map((s) => ({
       id: s.id,
       topic: s.topic,
       status: s.status,
       createdAt: s.createdAt,
       sourceCount: Array.isArray(s.rankedSources) ? s.rankedSources.length : 0,
-      projectName: s.project?.name ?? null,
+      projectName: null,
     })),
   );
 }

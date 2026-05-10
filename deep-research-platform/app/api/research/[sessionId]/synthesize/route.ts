@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { sessionStore } from "@/lib/local-session-store";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { getProviderForUser } from "@/lib/ai/router";
+import { getProviderFromConfig } from "@/lib/ai/router";
 import type { RankedSource, VerifiedCitation } from "@/lib/ranking/types";
-import { logUsageEvent } from "@/lib/ai/usage";
-import { estimateTokensFromChars } from "@/lib/ai/cost";
 import { SYNTHESIS_SYSTEM_PROMPT, SYNTHESIS_USER_PROMPT_TEMPLATE } from "@/lib/prompts";
 
-function fillTemplate(t: string, vars: Record<string, string>) { return Object.entries(vars).reduce((acc, [k, v]) => acc.replaceAll(`{{${k}}}`, v), t); }
+function fillTemplate(t: string, vars: Record<string, string>) {
+  return Object.entries(vars).reduce((acc, [k, v]) => acc.replaceAll(`{{${k}}}`, v), t);
+}
 
 export async function POST(_req: Request, { params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
-  const session = await prisma.researchSession.findUnique({ where: { id: sessionId } });
+  const session = sessionStore.get(sessionId);
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
 
   const rateLimit = enforceRateLimit(session.userId, "steps");
@@ -23,14 +23,13 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
   const ranked = (session.rankedSources as RankedSource[] | null) ?? [];
   const verified = (session.verifiedCitations as VerifiedCitation[] | null) ?? [];
 
-  const systemPrompt = SYNTHESIS_SYSTEM_PROMPT;
-  const userTemplate = SYNTHESIS_USER_PROMPT_TEMPLATE;
-
-  const sources = verified.map((v, i) => `[${i + 1}] ${(session.citationStyle === "mla" ? v.mla : v.apa)} | confidence=${Math.round(v.confidence * 100)}%`).join("\n");
+  const sources = verified
+    .map((v, i) => `[${i + 1}] ${session.citationStyle === "mla" ? v.mla : v.apa} | confidence=${Math.round(v.confidence * 100)}%`)
+    .join("\n");
   const questions = (plan.researchQuestions ?? []).map((q: string) => `- ${q}`).join("\n") || "- Explain core findings";
   const sections = (plan.expectedSections ?? ["Introduction", "Analysis", "Conclusion"]).map((s: string) => `- ${s}`).join("\n");
 
-  const userPrompt = fillTemplate(userTemplate, {
+  const userPrompt = fillTemplate(SYNTHESIS_USER_PROMPT_TEMPLATE, {
     topic: session.topic,
     depthLevel: session.depthLevel,
     citationStyle: session.citationStyle,
@@ -39,32 +38,25 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
     sources: `${sources}\n\nRanked source hints:\n${ranked.map((r, i) => `[${i + 1}] ${r.title}: ${r.abstract ?? ""}`).join("\n")}`,
   });
 
-  const provider = await getProviderForUser(session.userId);
+  const provider = getProviderFromConfig(session.apiKey, session.baseUrl, session.modelId);
+
   const stream = new ReadableStream({
     async start(controller) {
       const enc = new TextEncoder();
       let report = "";
       try {
-        for await (const token of provider.streamText(userPrompt, systemPrompt)) {
+        for await (const token of provider.streamText(userPrompt, SYNTHESIS_SYSTEM_PROMPT)) {
           report += token;
           controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "token", token })}\n\n`));
         }
-        await prisma.researchSession.update({ where: { id: sessionId }, data: { finalReport: report, status: "complete" } });
-        await logUsageEvent({
-          userId: session.userId,
-          sessionId,
-          eventType: "synthesis_complete",
-          provider: provider.provider,
-          model: provider.model,
-          promptTokens: estimateTokensFromChars(userPrompt.length + systemPrompt.length),
-          completionTokens: estimateTokensFromChars(report.length),
-        });
-        await prisma.researchArtifact.create({ data: { sessionId, type: "final_report", format: "markdown", content: report } });
+        sessionStore.update(sessionId, { finalReport: report, status: "complete" });
         controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "done", length: report.length })}\n\n`));
       } catch {
-        await prisma.researchSession.update({ where: { id: sessionId }, data: { status: "failed" } });
+        sessionStore.update(sessionId, { status: "failed" });
         controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "error", error: "Synthesis failed" })}\n\n`));
-      } finally { controller.close(); }
+      } finally {
+        controller.close();
+      }
     },
   });
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { sessionStore } from "@/lib/local-session-store";
 import { buildMarkdownExport } from "@/server/export/markdown";
 import { buildBibtexExport } from "@/server/export/bibtex";
 import { buildJsonExport } from "@/server/export/json";
@@ -17,11 +17,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ses
   const { sessionId } = await params;
   const body = await req.json();
   const parsed = exportSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "Validation failed" }, { status: 400 });
   const { userId, format } = parsed.data as { userId: string; format: ExportFormat };
 
-  const session = await prisma.researchSession.findFirst({ where: { id: sessionId, userId } });
-  if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  const session = sessionStore.get(sessionId);
+  if (!session || session.userId !== userId) return NextResponse.json({ error: "Session not found" }, { status: 404 });
 
   const exportableStatuses = new Set(["complete", "synthesizing", "verifying", "ranking"]);
   if (!exportableStatuses.has(session.status)) return NextResponse.json({ error: "Session is not ready for export" }, { status: 409 });
@@ -56,5 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ses
   }
 
   const responseBody = typeof data === "string" ? data : new Blob([Uint8Array.from(data)], { type: mime });
-  return new NextResponse(responseBody, { headers: { "Content-Type": mime, "Content-Disposition": `attachment; filename=\"${base}${suffix}\"` } });
+  return new NextResponse(responseBody, {
+    headers: { "Content-Type": mime, "Content-Disposition": `attachment; filename="${base}${suffix}"` },
+  });
 }

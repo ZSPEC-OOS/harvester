@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { sessionStore } from "@/lib/local-session-store";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import type { RankedSource, VerifiedCitation } from "@/lib/ranking/types";
 import { verifyCitation } from "@/server/citations/verify";
@@ -7,7 +7,7 @@ import { formatApa, formatMla } from "@/server/citations/format";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
-  const session = await prisma.researchSession.findUnique({ where: { id: sessionId } });
+  const session = sessionStore.get(sessionId);
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
 
   const rateLimit = enforceRateLimit(session.userId, "steps");
@@ -37,21 +37,13 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
             warnings: result.warnings,
           };
           out.push(item);
-          controller.enqueue(
-            enc.encode(`data: ${JSON.stringify({ type: "verified", index: i + 1, total: ranked.length, item })}\n\n`),
-          );
+          controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "verified", index: i + 1, total: ranked.length, item })}\n\n`));
         }
 
-        await prisma.researchSession.update({
-          where: { id: sessionId },
-          data: { verifiedCitations: out as unknown as import("@prisma/client").Prisma.InputJsonValue, status: "synthesizing" },
-        });
+        sessionStore.update(sessionId, { verifiedCitations: out, status: "synthesizing" });
         controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "done", total: out.length })}\n\n`));
       } catch {
-        await prisma.researchSession.update({
-          where: { id: sessionId },
-          data: { status: "failed" },
-        });
+        sessionStore.update(sessionId, { status: "failed" });
         controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "error", error: "Verification failed" })}\n\n`));
       } finally {
         controller.close();
@@ -60,10 +52,6 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
   });
 
   return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
   });
 }
