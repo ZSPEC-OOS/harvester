@@ -3,7 +3,8 @@
 ## Environment Variables
 | Name | Required | Description |
 |---|---|---|
-| DATABASE_URL | Yes | Postgres connection string |
+| DATABASE_URL | Yes | Postgres connection string (may be a pooled URL when using PgBouncer/Accelerate) |
+| DIRECT_URL | Yes | Direct (non-pooled) Postgres connection string – required by Prisma for migrations |
 | NEXT_PUBLIC_DEFAULT_USER_ID | Yes | Default local user identifier |
 | DEEPSEEK_API_KEY | Yes | AI provider key |
 | SERPER_API_KEY | Yes | Search API key |
