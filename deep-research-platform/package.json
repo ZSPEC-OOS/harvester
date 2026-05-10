@@ -22,7 +22,9 @@
     "react-dom": "19.0.0",
     "react-hook-form": "latest",
     "tailwind-merge": "latest",
-    "zod": "latest"
+    "zod": "latest",
+    "csv-stringify": "latest",
+    "docx": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",
