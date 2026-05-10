@@ -26,7 +26,7 @@ export async function logUsageEvent(input: {
       promptTokens,
       completionTokens,
       costUsd: computedCost,
-      metadata: input.metadata,
+      metadata: input.metadata as unknown as import("@prisma/client").Prisma.InputJsonValue,
     },
   });
 }

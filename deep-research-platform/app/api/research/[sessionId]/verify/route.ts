@@ -44,7 +44,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
 
         await prisma.researchSession.update({
           where: { id: sessionId },
-          data: { verifiedCitations: out, status: "synthesizing" },
+          data: { verifiedCitations: out as unknown as import("@prisma/client").Prisma.InputJsonValue, status: "synthesizing" },
         });
         controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "done", total: out.length })}\n\n`));
       } catch {

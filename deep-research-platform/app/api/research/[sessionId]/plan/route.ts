@@ -53,7 +53,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
 
         await prisma.researchSession.update({
           where: { id: sessionId },
-          data: { plan, status: "searching" },
+          data: { plan: plan as unknown as import("@prisma/client").Prisma.InputJsonValue, status: "searching" },
         });
 
         await logUsageEvent({
