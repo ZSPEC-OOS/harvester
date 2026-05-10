@@ -1,0 +1,7 @@
+"use client";
+import { Download, Play, Square } from "lucide-react";
+import { useState } from "react";
+import type { ExportFormat } from "@/types/research";
+import { GlassCard } from "../ui/GlassCard";
+
+export function ActionCard({ onRun, onStop, onExport, estimatedPapers, isRunning, disableRun }:{onRun:()=>void;onStop:()=>void;onExport:(f:ExportFormat)=>void;estimatedPapers:number;isRunning:boolean;disableRun:boolean;}){const [format,setFormat]=useState<ExportFormat>("txt");return <GlassCard className="p-4"><button onClick={isRunning?onStop:onRun} disabled={!isRunning&&disableRun} className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-primary px-4 py-2.5 font-medium text-white shadow-glow disabled:opacity-50">{isRunning?<><Square size={14}/>Stop</>:<><Play size={14}/>Run DeepScholar</>}</button><div className="mb-3 flex rounded-lg border border-ds-border text-xs">{(["txt","bibtex","ris"] as const).map(f=><button key={f} onClick={()=>setFormat(f)} className={`flex-1 px-2 py-1.5 ${format===f?"bg-ds-primary/25 text-ds-text":"text-ds-muted"}`}>{f.toUpperCase()}</button>)}</div><button onClick={()=>onExport(format)} className="flex w-full items-center justify-center gap-2 rounded-lg border border-ds-accent/40 bg-ds-accent/10 px-3 py-2 text-sm"><Download size={14}/>Export</button><p className="mt-2 text-center text-xs text-ds-muted">up to ~{estimatedPapers.toLocaleString()} references</p></GlassCard>;}

@@ -1,0 +1,5 @@
+"use client";
+import type { CandidateSource } from "@/types/research";
+import { GlassCard } from "../ui/GlassCard";
+
+export function ReferenceResultsCard({ sources }:{sources:CandidateSource[]}){return <GlassCard className="p-4"><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold">Reference Results</h3><span className="rounded-full border border-ds-border px-2 py-0.5 text-xs text-ds-muted">{sources.length}</span></div><div className="space-y-2">{sources.map((s)=><article key={s.id} className="rounded-lg border border-ds-border/70 bg-black/20 p-3 text-xs"><div className="mb-1 flex items-start justify-between gap-2"><h4 className="font-medium text-ds-text">{s.title}</h4><span className="rounded border border-ds-border px-1.5 py-0.5 uppercase text-[10px] text-ds-muted">{s.sourceType}</span></div><p className="text-ds-muted">{s.authors.join(", ")} {s.year?`(${s.year})`:""}</p><p className="text-ds-muted">{s.journal}</p>{s.doi&&<a className="text-blue-300 underline" href={`https://doi.org/${s.doi}`} target="_blank" rel="noreferrer">{s.doi}</a>}</article>)}</div></GlassCard>;}
