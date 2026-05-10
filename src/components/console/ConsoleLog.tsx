@@ -22,10 +22,10 @@ export function ConsoleLog({ lines }: Props) {
         ref={preRef}
         className="max-h-48 overflow-auto rounded-lg p-4 font-mono text-xs leading-relaxed"
         style={{
-          background: 'rgba(2, 5, 14, 0.72)',
-          border: '1px solid rgba(120,140,180,0.08)',
-          color: '#64A0D0',
-          boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.4)',
+          background: 'rgba(5, 12, 30, 0.82)',
+          border: '1px solid rgba(130,155,200,0.18)',
+          color: '#7ABCE8',
+          boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.35)',
         }}
       >
         {lines.join('\n')}
@@ -39,10 +39,10 @@ export function ConsoleLog({ lines }: Props) {
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between px-4 py-3 text-left transition"
-        style={{ color: '#64748B' }}
+        style={{ color: '#8AAAC6' }}
       >
-        <span className="flex items-center gap-2 font-mono text-[11px] tracking-widest" style={{ color: '#3D5070' }}>
-          <Terminal size={11} style={{ color: '#4A6FA5' }} />
+        <span className="flex items-center gap-2 font-mono text-[11px] tracking-widest" style={{ color: '#7090B8' }}>
+          <Terminal size={11} style={{ color: '#5A82B8' }} />
           Activity Log
         </span>
         {open

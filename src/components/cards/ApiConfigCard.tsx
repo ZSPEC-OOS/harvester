@@ -53,7 +53,7 @@ export function ApiConfigCard({ config, onChange }: Props) {
         <div className="flex items-center gap-2.5">
           <span
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-            style={{ background: 'rgba(38,191,166,0.10)', color: '#5DD3C2' }}
+            style={{ background: 'rgba(38,191,166,0.14)', color: '#5DD3C2' }}
           >
             <Cpu size={13} />
           </span>
@@ -61,7 +61,7 @@ export function ApiConfigCard({ config, onChange }: Props) {
             <h3 className="text-sm font-semibold" style={{ color: '#F3F6FB' }}>
               AI Provider
             </h3>
-            <p className="text-[11px]" style={{ color: '#64748B' }}>
+            <p className="text-[11px]" style={{ color: '#7A95B4' }}>
               OpenAI-compatible endpoint for topic expansion
             </p>
           </div>
@@ -70,8 +70,8 @@ export function ApiConfigCard({ config, onChange }: Props) {
           <span
             className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
             style={{
-              background: 'rgba(16,185,129,0.08)',
-              border: '1px solid rgba(16,185,129,0.22)',
+              background: 'rgba(16,185,129,0.12)',
+              border: '1px solid rgba(16,185,129,0.30)',
               color: '#6EE7B7',
             }}
           >
@@ -82,7 +82,7 @@ export function ApiConfigCard({ config, onChange }: Props) {
 
       <div className="space-y-3">
         <div>
-          <label className={labelCls} htmlFor="api-nickname" style={{ color: '#64748B' }}>
+          <label className={labelCls} htmlFor="api-nickname" style={{ color: '#8AAAC6' }}>
             Nickname
           </label>
           <input
@@ -95,7 +95,7 @@ export function ApiConfigCard({ config, onChange }: Props) {
         </div>
 
         <div>
-          <label className={labelCls} htmlFor="api-base-url" style={{ color: '#64748B' }}>
+          <label className={labelCls} htmlFor="api-base-url" style={{ color: '#8AAAC6' }}>
             Base URL
           </label>
           <input
@@ -108,7 +108,7 @@ export function ApiConfigCard({ config, onChange }: Props) {
         </div>
 
         <div>
-          <label className={labelCls} htmlFor="api-model-id" style={{ color: '#64748B' }}>
+          <label className={labelCls} htmlFor="api-model-id" style={{ color: '#8AAAC6' }}>
             Model ID
           </label>
           <input
@@ -121,7 +121,7 @@ export function ApiConfigCard({ config, onChange }: Props) {
         </div>
 
         <div>
-          <label className={labelCls} htmlFor="api-key" style={{ color: '#64748B' }}>
+          <label className={labelCls} htmlFor="api-key" style={{ color: '#8AAAC6' }}>
             API Key
           </label>
           <div className="relative">
@@ -137,7 +137,7 @@ export function ApiConfigCard({ config, onChange }: Props) {
               type="button"
               onClick={() => setShowKey((v) => !v)}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 transition"
-              style={{ color: '#475569' }}
+              style={{ color: '#8AAAC6' }}
               aria-label={showKey ? 'Hide key' : 'Show key'}
             >
               {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -152,8 +152,8 @@ export function ApiConfigCard({ config, onChange }: Props) {
             disabled={!isConfigured || testing}
             className="rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40"
             style={{
-              background: 'rgba(33,85,214,0.10)',
-              border: '1px solid rgba(33,85,214,0.25)',
+              background: 'rgba(33,85,214,0.14)',
+              border: '1px solid rgba(33,85,214,0.32)',
               color: '#93B4FF',
             }}
           >

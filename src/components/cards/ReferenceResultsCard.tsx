@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { FileText } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 
-type WispPaper = {
+type Paper = {
   title: string;
   doi: string | null;
   authors: string[];
@@ -22,7 +22,7 @@ const styleLabelMap: Record<string, string> = {
   'doi-only': 'DOI only',
 };
 
-const formatCitation = (paper: WispPaper, index: number, style: string): string => {
+const formatCitation = (paper: Paper, index: number, style: string): string => {
   const authorStr =
     paper.authors.length > 0
       ? paper.authors.slice(0, 3).join(', ') + (paper.authors.length > 3 ? ', et al.' : '')
@@ -41,7 +41,7 @@ const formatCitation = (paper: WispPaper, index: number, style: string): string 
 };
 
 type Props = {
-  papers: WispPaper[];
+  papers: Paper[];
   referenceStyle: string;
   isRunning?: boolean;
   isVerifying?: boolean;
@@ -73,7 +73,7 @@ export function ReferenceResultsCard({
         <div className="flex items-center gap-2.5">
           <span
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-            style={{ background: 'rgba(33,85,214,0.14)', color: '#6B9EFF' }}
+            style={{ background: 'rgba(33,85,214,0.18)', color: '#7BAAEE' }}
           >
             <FileText size={13} />
           </span>
@@ -84,7 +84,7 @@ export function ReferenceResultsCard({
             {(isRunning || isVerifying) && (
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
             )}
-            <span className="text-[11px]" style={{ color: '#64748B' }}>
+            <span className="text-[11px]" style={{ color: '#8AAAC6' }}>
               {papers.length > 0 ? `${papers.length.toLocaleString()} · ${style}` : style}
             </span>
             {isVerifying && (
@@ -98,7 +98,7 @@ export function ReferenceResultsCard({
         {papers.length > 0 && (
           <div
             className="flex overflow-hidden rounded-md text-[10px]"
-            style={{ border: '1px solid rgba(120,140,180,0.14)' }}
+            style={{ border: '1px solid rgba(130,155,200,0.24)' }}
           >
             {(['discovery', 'year-desc', 'year-asc'] as const).map((o) => (
               <button
@@ -107,8 +107,8 @@ export function ReferenceResultsCard({
                 className="px-2 py-1 transition"
                 style={
                   sortOrder === o
-                    ? { background: 'rgba(33,85,214,0.22)', color: '#E8EDF5' }
-                    : { color: '#64748B' }
+                    ? { background: 'rgba(33,85,214,0.28)', color: '#E8EDF5' }
+                    : { color: '#8AAAC6' }
                 }
               >
                 {o === 'discovery' ? 'Default' : o === 'year-desc' ? 'Year ↓' : 'Year ↑'}
@@ -122,13 +122,13 @@ export function ReferenceResultsCard({
       <div
         className="max-h-[520px] overflow-auto rounded-lg p-3"
         style={{
-          background: 'rgba(2, 6, 18, 0.65)',
-          border: '1px solid rgba(120,140,180,0.09)',
-          boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.35)',
+          background: 'rgba(6, 14, 36, 0.80)',
+          border: '1px solid rgba(130,155,200,0.17)',
+          boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.32)',
         }}
       >
         {papers.length === 0 ? (
-          <p className="text-sm" style={{ color: '#475569' }}>
+          <p className="text-sm" style={{ color: '#7A95B4' }}>
             {isRunning ? 'Gathering references…' : 'Run DeepScholar to populate results here.'}
           </p>
         ) : (
@@ -137,9 +137,9 @@ export function ReferenceResultsCard({
               <div
                 key={paper.doi ?? paper.url ?? i}
                 className="pb-2.5 last:pb-0"
-                style={{ borderBottom: '1px solid rgba(120,140,180,0.07)' }}
+                style={{ borderBottom: '1px solid rgba(130,155,200,0.12)' }}
               >
-                <p className="font-mono text-xs leading-relaxed sm:text-[13px]" style={{ color: '#C4CDD8' }}>
+                <p className="font-mono text-xs leading-relaxed sm:text-[13px]" style={{ color: '#D2DDE9' }}>
                   {formatCitation(paper, i + 1, referenceStyle)}
                 </p>
                 <div className="mt-1.5 flex flex-wrap gap-2.5">
@@ -149,7 +149,7 @@ export function ReferenceResultsCard({
                       target="_blank"
                       rel="noreferrer"
                       className="text-[10px] font-medium transition"
-                      style={{ color: '#6B9EFF' }}
+                      style={{ color: '#7BAAEE' }}
                     >
                       DOI ↗
                     </a>
@@ -160,7 +160,7 @@ export function ReferenceResultsCard({
                       target="_blank"
                       rel="noreferrer"
                       className="text-[10px] font-medium transition"
-                      style={{ color: '#6B9EFF' }}
+                      style={{ color: '#7BAAEE' }}
                     >
                       Link ↗
                     </a>
@@ -177,7 +177,7 @@ export function ReferenceResultsCard({
                     </a>
                   )}
                   {paper.provider && (
-                    <span className="text-[10px]" style={{ color: '#334155' }}>
+                    <span className="text-[10px]" style={{ color: '#506080' }}>
                       {paper.provider}
                     </span>
                   )}
