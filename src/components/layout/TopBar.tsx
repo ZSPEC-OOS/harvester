@@ -17,28 +17,56 @@ export function TopBar({ onMenuClick, onNewTask, isRunning }: Props) {
       }}
     >
       <div className="relative mx-auto flex max-w-[1360px] items-center px-4 py-3 sm:px-6">
-        {/* Left — settings */}
-        <button
-          type="button"
-          onClick={onMenuClick}
-          className="flex h-8 w-8 items-center justify-center rounded-lg transition"
-          style={{
-            background: 'rgba(33, 85, 214, 0.10)',
-            border: '1px solid rgba(130, 155, 200, 0.22)',
-            color: '#A8BDD3',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(33, 85, 214, 0.18)';
-            (e.currentTarget as HTMLButtonElement).style.color = '#F3F6FB';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(33, 85, 214, 0.10)';
-            (e.currentTarget as HTMLButtonElement).style.color = '#A8BDD3';
-          }}
-          aria-label="Open settings"
-        >
-          <Settings size={15} />
-        </button>
+        {/* Left — settings + new task */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="flex h-8 w-8 items-center justify-center rounded-lg transition"
+            style={{
+              background: 'rgba(33, 85, 214, 0.10)',
+              border: '1px solid rgba(130, 155, 200, 0.22)',
+              color: '#A8BDD3',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(33, 85, 214, 0.18)';
+              (e.currentTarget as HTMLButtonElement).style.color = '#F3F6FB';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(33, 85, 214, 0.10)';
+              (e.currentTarget as HTMLButtonElement).style.color = '#A8BDD3';
+            }}
+            aria-label="Open settings"
+          >
+            <Settings size={15} />
+          </button>
+
+          <button
+            type="button"
+            onClick={onNewTask}
+            disabled={isRunning}
+            title={isRunning ? 'Stop the current run before starting a new task' : 'Clear all results and start a new research task'}
+            className="flex h-8 w-8 items-center justify-center rounded-lg transition disabled:cursor-not-allowed disabled:opacity-40"
+            style={{
+              background: 'rgba(38, 191, 166, 0.10)',
+              border: '1px solid rgba(38, 191, 166, 0.28)',
+              color: '#5DD3C2',
+            }}
+            onMouseEnter={(e) => {
+              if (!isRunning) {
+                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(38, 191, 166, 0.20)';
+                (e.currentTarget as HTMLButtonElement).style.color = '#8FEADA';
+              }
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(38, 191, 166, 0.10)';
+              (e.currentTarget as HTMLButtonElement).style.color = '#5DD3C2';
+            }}
+            aria-label="New task"
+          >
+            <PlusCircle size={15} />
+          </button>
+        </div>
 
         {/* Center — title */}
         <div className="absolute left-1/2 -translate-x-1/2 text-center">
@@ -56,37 +84,8 @@ export function TopBar({ onMenuClick, onNewTask, isRunning }: Props) {
           </p>
         </div>
 
-        {/* Right — new task + status */}
+        {/* Right — status */}
         <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onNewTask}
-            disabled={isRunning}
-            title={isRunning ? 'Stop the current run before starting a new task' : 'Clear all results and start a new research task'}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
-            style={{
-              background: 'linear-gradient(135deg, rgba(33,85,214,0.22) 0%, rgba(38,191,166,0.16) 100%)',
-              border: '1px solid rgba(38,191,166,0.32)',
-              color: '#6FD8C4',
-              boxShadow: '0 2px 10px rgba(33,85,214,0.18)',
-            }}
-            onMouseEnter={(e) => {
-              if (!isRunning) {
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  'linear-gradient(135deg, rgba(33,85,214,0.34) 0%, rgba(38,191,166,0.26) 100%)';
-                (e.currentTarget as HTMLButtonElement).style.color = '#8FEADA';
-              }
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                'linear-gradient(135deg, rgba(33,85,214,0.22) 0%, rgba(38,191,166,0.16) 100%)';
-              (e.currentTarget as HTMLButtonElement).style.color = '#6FD8C4';
-            }}
-          >
-            <PlusCircle size={12} />
-            New Task
-          </button>
-
           {isRunning ? (
             <span
               className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium"
