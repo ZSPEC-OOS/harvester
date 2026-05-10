@@ -6,6 +6,7 @@ export type ResearchStatus = "idle" | "running" | "done" | "error";
 
 export interface SearchConfig {
   topic: string;
+  projectId?: string;
   citationStyle: CitationStyle;
   startYear: number;
   endYear: number;
@@ -13,6 +14,23 @@ export interface SearchConfig {
   includePreprints: boolean;
   excludePatents: boolean;
   onlyOpenAccess: boolean;
+}
+
+export interface ProjectSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  sessionCount: number;
+  createdAt: string;
+}
+
+export interface SessionSummary {
+  id: string;
+  topic: string;
+  status: string;
+  createdAt: string;
+  sourceCount: number;
+  projectName: string | null;
 }
 
 export interface ApiConfig {
