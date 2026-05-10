@@ -3,7 +3,7 @@
   "buildCommand": "npm --prefix deep-research-platform run build",
   "installCommand": "npm --prefix deep-research-platform install --legacy-peer-deps",
   "functions": {
-    "deep-research-platform/app/api/**/*.ts": {
+    "app/api/**/*.ts": {
       "maxDuration": 30
     }
   }
