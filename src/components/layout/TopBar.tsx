@@ -3,10 +3,9 @@ import { Settings } from 'lucide-react';
 type Props = {
   onMenuClick: () => void;
   isRunning: boolean;
-  wispConfigured: boolean;
 };
 
-export function TopBar({ onMenuClick, isRunning, wispConfigured }: Props) {
+export function TopBar({ onMenuClick, isRunning }: Props) {
   return (
     <header
       className="sticky top-0 z-30 backdrop-blur-xl"
@@ -52,7 +51,7 @@ export function TopBar({ onMenuClick, isRunning, wispConfigured }: Props) {
             className="mt-0.5 text-[9px] tracking-[0.28em] uppercase"
             style={{ color: '#3D5070', letterSpacing: '0.26em' }}
           >
-            Research Optimized
+            AI-Driven Research
           </p>
         </div>
 
@@ -70,20 +69,18 @@ export function TopBar({ onMenuClick, isRunning, wispConfigured }: Props) {
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
               Running
             </span>
-          ) : wispConfigured ? (
+          ) : (
             <span
               className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium"
               style={{
-                background: 'rgba(16, 185, 129, 0.07)',
-                border: '1px solid rgba(16, 185, 129, 0.22)',
-                color: '#6EE7B7',
+                background: 'rgba(33, 85, 214, 0.07)',
+                border: '1px solid rgba(33, 85, 214, 0.22)',
+                color: '#93B4FF',
               }}
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Live
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+              Ready
             </span>
-          ) : (
-            <div className="w-16" />
           )}
         </div>
       </div>

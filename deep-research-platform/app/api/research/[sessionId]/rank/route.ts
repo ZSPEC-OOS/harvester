@@ -18,7 +18,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
   if (!rateLimit.allowed) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: rateLimit.headers });
   }
-  const sources = (session.candidateSources as CandidateSource[] | null) ?? [];
+  const allSources = (session.candidateSources as CandidateSource[] | null) ?? [];
+  // Cap candidates before AI ranking to avoid unbounded cost
+  const sources = allSources.slice(0, 100);
   const topic = session.topic;
   const provider = await getProviderForUser(session.userId);
   const systemPrompt = RANKER_SYSTEM_PROMPT;

@@ -32,9 +32,8 @@ export function deduplicateSources(sources: CandidateSource[]): CandidateSource[
     }
 
     const titleKey = normalizeTitle(source.title);
-    if (titleKey && byTitle.has(titleKey)) {
-      if (!doi) continue;
-    } else if (titleKey) {
+    if (titleKey) {
+      if (byTitle.has(titleKey)) continue;
       byTitle.set(titleKey, source);
     }
 

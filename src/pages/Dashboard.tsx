@@ -7,7 +7,6 @@ import { OutputCard } from '../components/cards/OutputCard';
 import { ReferenceResultsCard } from '../components/cards/ReferenceResultsCard';
 import { SearchConfigCard } from '../components/cards/SearchConfigCard';
 import { ActiveSourcesCard } from '../components/cards/ActiveSourcesCard';
-import { WispConfigCard, type WispConfig } from '../components/cards/WispConfigCard';
 import { ConsoleLog } from '../components/console/ConsoleLog';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Container } from '../components/layout/Container';
@@ -27,10 +26,9 @@ type Settings = {
   onlyOpenAccess: boolean;
   externalAiEnabled: boolean;
   apiConfig: ApiConfig;
-  wispConfig: WispConfig;
 };
 
-export type WispPaper = {
+export type Paper = {
   title: string;
   doi: string | null;
   authors: string[];
@@ -69,9 +67,7 @@ const initialSettings: Settings = {
   onlyOpenAccess: false,
   externalAiEnabled: false,
   apiConfig: { nickname: '', baseUrl: '', modelId: '', apiKey: '' },
-  wispConfig: { baseUrl: '', apiKey: '' },
 };
-
 
 const seedLines = ['[10:32:15] DeepScholar ready', '[10:32:28] Waiting for user action'];
 
@@ -104,7 +100,7 @@ const expandTopicLocally = (topic: string) => {
   ].join('\n\n');
 };
 
-const formatPaperCitation = (paper: WispPaper, index: number, style: string): string => {
+const formatPaperCitation = (paper: Paper, index: number, style: string): string => {
   const authorStr =
     paper.authors.length > 0
       ? paper.authors.slice(0, 3).join(', ') + (paper.authors.length > 3 ? ', et al.' : '')
@@ -128,7 +124,7 @@ const formatPaperCitation = (paper: WispPaper, index: number, style: string): st
   }
 };
 
-const isPreprint = (p: WispPaper): boolean => {
+const isPreprint = (p: Paper): boolean => {
   const prov = p.provider.toLowerCase();
   return prov.includes('arxiv') || prov.includes('biorxiv') || prov.includes('medrxiv') || p.url.includes('arxiv.org');
 };
@@ -140,7 +136,7 @@ const normalizeDoi = (doi: string): string =>
   doi.replace(/^https?:\/\/doi\.org\//i, '').toLowerCase().trim();
 
 const buildExport = (
-  papers: WispPaper[],
+  papers: Paper[],
   topic: string,
   expandedTopic: string,
   style: string,
@@ -197,7 +193,7 @@ const buildExport = (
       'Expanded Topic:',
       expandedTopic,
       '',
-      `Reference style: ${style}`,
+      `Reference style: ${styleLabelMap[style] ?? style}`,
       `Generated references: ${papers.length}`,
       '',
       ...formatted,
@@ -207,22 +203,7 @@ const buildExport = (
   };
 };
 
-const fetchWispPapers = async (query: string, wisp: WispConfig): Promise<WispPaper[]> => {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (wisp.apiKey.trim()) headers['X-API-Key'] = wisp.apiKey;
-
-  const res = await fetch(`${wisp.baseUrl.replace(/\/$/, '')}/v1/academic`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ prompt: query, question: '', max_papers: 40 }),
-  });
-
-  if (!res.ok) throw new Error(`WISP ${res.status}`);
-  const data = await res.json();
-  return (data.papers ?? []) as WispPaper[];
-};
-
-const fetchPubMed = async (query: string): Promise<WispPaper[]> => {
+const fetchPubMed = async (query: string): Promise<Paper[]> => {
   const base = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
   const searchRes = await fetch(
     `${base}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=25&retmode=json&tool=deepscholar&email=app@deepscholar.ai`,
@@ -254,12 +235,12 @@ const fetchPubMed = async (query: string): Promise<WispPaper[]> => {
         url: `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
         oa_pdf_url: null,
         provider: 'pubmed',
-      } satisfies WispPaper,
+      } satisfies Paper,
     ];
   });
 };
 
-const fetchEuropePmc = async (query: string): Promise<WispPaper[]> => {
+const fetchEuropePmc = async (query: string): Promise<Paper[]> => {
   const res = await fetch(
     `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(query)}&format=json&pageSize=25&resultType=core`,
   );
@@ -275,7 +256,7 @@ const fetchEuropePmc = async (query: string): Promise<WispPaper[]> => {
       id?: string;
       isOpenAccess?: string;
       fullTextUrl?: string;
-    }): WispPaper => ({
+    }): Paper => ({
       title: item.title ?? '',
       doi: item.doi ?? null,
       authors: item.authorString ? item.authorString.split(', ').slice(0, 6) : [],
@@ -289,7 +270,7 @@ const fetchEuropePmc = async (query: string): Promise<WispPaper[]> => {
   );
 };
 
-const fetchCORE = async (query: string): Promise<WispPaper[]> => {
+const fetchCORE = async (query: string): Promise<Paper[]> => {
   const res = await fetch(
     `https://api.core.ac.uk/v3/search/works?q=${encodeURIComponent(query)}&limit=20`,
   );
@@ -302,7 +283,7 @@ const fetchCORE = async (query: string): Promise<WispPaper[]> => {
       authors?: Array<string | { name?: string }>;
       yearPublished?: number;
       downloadUrl?: string;
-    }): WispPaper => ({
+    }): Paper => ({
       title: item.title ?? '',
       doi: item.doi ?? null,
       authors: (item.authors ?? [])
@@ -316,7 +297,7 @@ const fetchCORE = async (query: string): Promise<WispPaper[]> => {
   );
 };
 
-const fetchERIC = async (query: string): Promise<WispPaper[]> => {
+const fetchERIC = async (query: string): Promise<Paper[]> => {
   const res = await fetch(
     `https://api.ies.ed.gov/eric/?search=${encodeURIComponent(query)}&format=json&rows=20`,
   );
@@ -329,7 +310,7 @@ const fetchERIC = async (query: string): Promise<WispPaper[]> => {
       publicationdateyear?: number;
       url?: string;
       id?: string;
-    }): WispPaper => ({
+    }): Paper => ({
       title: item.title ?? '',
       doi: null,
       authors: Array.isArray(item.author)
@@ -423,14 +404,17 @@ export function Dashboard() {
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('paper-harvester-settings');
     if (!saved) return initialSettings;
-    const parsed = JSON.parse(saved);
-    return {
-      ...initialSettings,
-      ...parsed,
-      topic: '',
-      apiConfig: { ...initialSettings.apiConfig, ...parsed.apiConfig },
-      wispConfig: { ...initialSettings.wispConfig, ...parsed.wispConfig },
-    };
+    try {
+      const parsed = JSON.parse(saved);
+      return {
+        ...initialSettings,
+        ...parsed,
+        topic: '',
+        apiConfig: { ...initialSettings.apiConfig, ...parsed.apiConfig },
+      };
+    } catch {
+      return initialSettings;
+    }
   });
 
   const [expandedTopic, setExpandedTopic] = useState('');
@@ -438,7 +422,7 @@ export function Dashboard() {
   const [expansionAccepted, setExpansionAccepted] = useState(false);
   const [isExpanding, setIsExpanding] = useState(false);
 
-  const [papers, setPapers] = useState<WispPaper[]>([]);
+  const [papers, setPapers] = useState<Paper[]>([]);
   const [sourceCounts, setSourceCounts] = useState<Record<string, number>>({});
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -455,14 +439,22 @@ export function Dashboard() {
 
   const [history, setHistory] = useState<HistoryEntry[]>(() => {
     const saved = localStorage.getItem('paper-harvester-history');
-    return saved ? (JSON.parse(saved) as HistoryEntry[]) : [];
+    try {
+      return saved ? (JSON.parse(saved) as HistoryEntry[]) : [];
+    } catch {
+      return [];
+    }
   });
   const [restoreTopicId, setRestoreTopicId] = useState<string | null>(null);
 
   // ── Persistence ────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    localStorage.setItem('paper-harvester-settings', JSON.stringify(settings));
+    try {
+      localStorage.setItem('paper-harvester-settings', JSON.stringify(settings));
+    } catch {
+      // storage full
+    }
   }, [settings]);
 
   // Restore session on mount
@@ -470,7 +462,7 @@ export function Dashboard() {
     const saved = localStorage.getItem('paper-harvester-session');
     if (!saved) return;
     try {
-      const session = JSON.parse(saved) as { papers: WispPaper[]; expandedTopic: string; sourceCounts: Record<string, number> };
+      const session = JSON.parse(saved) as { papers: Paper[]; expandedTopic: string; sourceCounts: Record<string, number> };
       if (session.papers?.length > 0) {
         setPapers(session.papers);
         setSourceCounts(session.sourceCounts ?? {});
@@ -488,14 +480,14 @@ export function Dashboard() {
   // Save session whenever papers change
   useEffect(() => {
     if (papers.length === 0) return;
-    if (papers.length > 8000) return; // guard localStorage limit
+    if (papers.length > 8000) return;
     try {
       localStorage.setItem(
         'paper-harvester-session',
         JSON.stringify({ papers, expandedTopic, sourceCounts }),
       );
     } catch {
-      // storage full — ignore
+      // storage full
     }
   }, [papers, expandedTopic, sourceCounts]);
 
@@ -503,34 +495,32 @@ export function Dashboard() {
 
   const stamp = () => new Date().toLocaleTimeString('en-US', { hour12: false });
 
-  const wispConfigured = Boolean(settings.wispConfig.baseUrl.trim());
   const apiConfigured = Boolean(settings.apiConfig.baseUrl.trim() && settings.apiConfig.apiKey.trim());
 
+  // Estimate based on 4 direct sources × ~20 papers/pass × dedup reduction
   const displayEstimate = useMemo(
-    () => (wispConfigured ? Math.round(settings.searchDepth * 40 * 0.65) : 0),
-    [wispConfigured, settings.searchDepth],
+    () => Math.round(settings.searchDepth * 20 * 0.6),
+    [settings.searchDepth],
   );
 
   const validationError = useMemo(() => {
-    if (!wispConfigured) return 'WISP backend required — add your WISP URL in settings to run a search.';
     if (!settings.topic.trim()) return 'Search Focus Topic is required.';
     if (!expandedTopic.trim() || !expansionAccepted) return 'Please process expansion and click Accept before running.';
     if (settings.startYear > settings.endYear) return 'Start year is later than end year.';
     if (settings.startYear < 1900 || settings.endYear > CURRENT_YEAR)
       return `Year range must be between 1900 and ${CURRENT_YEAR}.`;
     return null;
-  }, [expandedTopic, expansionAccepted, settings, wispConfigured]);
+  }, [expandedTopic, expansionAccepted, settings]);
 
   // ── Topic expansion ────────────────────────────────────────────────────────
 
-  // Step 1: generate topic-specific clarifying questions
   const processExpansion = async () => {
     if (!settings.topic.trim()) return;
     setClarifyPhase('loading');
 
     if (apiConfigured) {
       const { baseUrl, apiKey, modelId, nickname } = settings.apiConfig;
-      setLines((prev) => [...prev, `[${stamp()}] ${nickname || 'AI API'} generating focused questions…`]);
+      setLines((prev) => [...prev, `[${stamp()}] ${nickname || 'AI'} generating focused questions…`]);
       try {
         const res = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
           method: 'POST',
@@ -587,7 +577,6 @@ export function Dashboard() {
   };
 
   // Step 2: run actual expansion with answers injected
-  // Accepts explicit q/a to avoid stale closure when skipping
   const runExpansion = async (questionsIn = clarifyQuestions, answersIn = clarifyAnswers) => {
     if (!settings.topic.trim()) return;
     setIsExpanding(true);
@@ -604,7 +593,7 @@ export function Dashboard() {
 
     if (apiConfigured) {
       const { baseUrl, apiKey, modelId, nickname } = settings.apiConfig;
-      setLines((prev) => [...prev, `[${stamp()}] Calling ${nickname || 'AI API'} for topic expansion…`]);
+      setLines((prev) => [...prev, `[${stamp()}] Calling ${nickname || 'AI'} for topic expansion…`]);
       try {
         const res = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
           method: 'POST',
@@ -629,13 +618,13 @@ export function Dashboard() {
         setExpandedTopic(content);
         setExpandedTopicDraft(content);
         setExpansionAccepted(false);
-        setLines((prev) => [...prev, `[${stamp()}] Expansion received from ${nickname || 'AI API'}`]);
+        setLines((prev) => [...prev, `[${stamp()}] Expansion received from ${nickname || 'AI'}`]);
         setIsExpanding(false);
         return;
       } catch (err) {
         setLines((prev) => [
           ...prev,
-          `[${stamp()}] AI API error: ${String(err)} — falling back to local expansion`,
+          `[${stamp()}] AI error: ${String(err)} — falling back to local expansion`,
         ]);
       }
     }
@@ -650,7 +639,7 @@ export function Dashboard() {
 
   // ── AI verification ────────────────────────────────────────────────────────
 
-  const runAiVerification = async (papersToVerify: WispPaper[]): Promise<WispPaper[]> => {
+  const runAiVerification = async (papersToVerify: Paper[]): Promise<Paper[]> => {
     if (!apiConfigured) {
       setLines((prev) => [...prev, `[${stamp()}] AI verification skipped — no API configured`]);
       return papersToVerify;
@@ -665,7 +654,7 @@ export function Dashboard() {
     const { baseUrl, apiKey, modelId } = settings.apiConfig;
     const batchSize = 20;
     let totalRemoved = 0;
-    const allVerified: WispPaper[] = [];
+    const allVerified: Paper[] = [];
 
     for (let i = 0; i < papersToVerify.length; i += batchSize) {
       if (cancelRef.current) break;
@@ -759,9 +748,8 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
     const passes = settings.searchDepth;
     const localQueries = generateSubQueries(settings.topic, finalTopic, passes);
 
-    // Fire AI sub-query generation concurrently — WISP starts immediately on pass 1
-    // without waiting for the AI. AI queries are applied from the first pass where they
-    // resolve, giving true parallel execution between WISP and the attached model.
+    // Fire AI sub-query generation concurrently — direct sources start immediately.
+    // AI queries are applied from the first pass where they resolve.
     let resolvedAiQueries: string[] | null = null;
     let aiQueriesLogged = false;
     if (apiConfigured) {
@@ -785,18 +773,17 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
     let totalCount = 0;
     let emptyStreak = 0;
     const MAX_EMPTY_STREAK = 3;
-    const allPapers: WispPaper[] = [];
+    const allPapers: Paper[] = [];
     const runSourceCounts: Record<string, number> = {};
 
     setLines((prev) => [
       ...prev,
-      `[${stamp()}] Starting search across WISP + PubMed + Europe PMC + CORE + ERIC — up to ${passes} passes`,
+      `[${stamp()}] Starting AI-driven search across PubMed · Europe PMC · CORE · ERIC — up to ${passes} passes`,
     ]);
 
     for (let i = 0; i < passes; i++) {
       if (cancelRef.current) break;
 
-      // Use AI queries as soon as they resolve; fall back to local queries
       const query = resolvedAiQueries?.[i] ?? localQueries[i] ?? settings.topic;
       if (resolvedAiQueries && !aiQueriesLogged) {
         aiQueriesLogged = true;
@@ -812,7 +799,6 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
 
       try {
         const settled = await Promise.allSettled([
-          fetchWispPapers(query, settings.wispConfig),
           fetchPubMed(query),
           fetchEuropePmc(query),
           fetchCORE(query),
@@ -830,15 +816,13 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
           return true;
         });
 
-        // Dedup by DOI (normalized), then title fallback
+        // Dedup: prefer DOI, fall back to normalized title
         const newPapers = filtered.filter((p) => {
           if (p.doi) {
             const nd = normalizeDoi(p.doi);
             if (seenDois.has(nd)) return false;
             seenDois.add(nd);
-            return true;
           }
-          // No DOI — dedup by title
           const nt = normalizeTitle(p.title);
           if (seenTitles.has(nt)) return false;
           seenTitles.add(nt);
@@ -848,7 +832,6 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
         if (newPapers.length > 0) {
           emptyStreak = 0;
 
-          // Track source counts
           for (const p of newPapers) {
             runSourceCounts[p.provider] = (runSourceCounts[p.provider] ?? 0) + 1;
           }
@@ -888,11 +871,9 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
     ]);
 
     if (!cancelRef.current && allPapers.length > 0) {
-      // AI verification pass
       const verified = await runAiVerification(allPapers);
       setPapers(verified);
 
-      // Save to history (metadata only)
       const entry: HistoryEntry = {
         id: Date.now().toString(),
         topic: settings.topic,
@@ -1175,7 +1156,6 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                 }));
                 return;
               }
-              if (!wispConfigured) setSettingsMenuOpen(true);
             }}
           />
         )}
@@ -1194,13 +1174,13 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
     [
       activeStep, apiConfigured, clarifyAnswers, clarifyPhase, clarifyQuestions, displayEstimate,
       expandedTopic, expandedTopicDraft, expansionAccepted, isExpanding,
-      isRunning, isVerifying, papers, settings, validationError, wispConfigured,
+      isRunning, isVerifying, papers, settings, validationError,
     ],
   );
 
   return (
     <div className="min-h-screen bg-transparent text-white">
-      <TopBar onMenuClick={() => setSettingsMenuOpen(true)} isRunning={isRunning} wispConfigured={wispConfigured} />
+      <TopBar onMenuClick={() => setSettingsMenuOpen(true)} isRunning={isRunning} />
       <Container>
         <div className="relative grid grid-cols-1 gap-4 pb-16 xl:grid-cols-[minmax(0,800px)_340px] xl:items-start xl:pb-0">
           {cards}
@@ -1296,12 +1276,8 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
               </div>
 
               <div className="space-y-3 p-4 pb-10">
-                {/* Backends */}
-                <p className="section-label px-0.5">Backends</p>
-                <WispConfigCard
-                  config={settings.wispConfig}
-                  onChange={(wispConfig) => setSettings((s) => ({ ...s, wispConfig }))}
-                />
+                {/* AI Model */}
+                <p className="section-label px-0.5">AI Model</p>
                 <ApiConfigCard
                   config={settings.apiConfig}
                   onChange={(apiConfig) => setSettings((s) => ({ ...s, apiConfig }))}
@@ -1417,7 +1393,11 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                           onClick={() => {
                             const updated = history.filter((h) => h.id !== entry.id);
                             setHistory(updated);
-                            localStorage.setItem('paper-harvester-history', JSON.stringify(updated));
+                            try {
+                              localStorage.setItem('paper-harvester-history', JSON.stringify(updated));
+                            } catch {
+                              // storage full
+                            }
                           }}
                           className="ml-2 shrink-0 transition"
                           style={{ color: '#334155' }}
