@@ -7,7 +7,7 @@ export class DeepSeekProvider implements AIProvider {
   private client: OpenAI;
 
   constructor(apiKey: string, baseURL: string, model = "deepseek-chat") {
-    this.client = new OpenAI({ apiKey, baseURL });
+    this.client = new OpenAI({ apiKey, baseURL, timeout: 10000 });
     this.model = model;
   }
 

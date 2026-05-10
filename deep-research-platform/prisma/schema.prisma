@@ -17,6 +17,7 @@ model User {
   sessions    ResearchSession[]
   apiKeys     UserApiKey[]
   usageEvents UsageEvent[]
+  firebaseUid String?           @unique
 }
 
 model Project {
@@ -55,6 +56,9 @@ model ResearchSession {
   project             Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
   logs                ResearchLog[]
   artifacts           ResearchArtifact[]
+
+  @@index([userId])
+  @@index([projectId])
 }
 
 enum ResearchStatus {
@@ -78,6 +82,8 @@ model ResearchLog {
   message   String
   metadata  Json?
   createdAt DateTime        @default(now())
+
+  @@index([sessionId])
 }
 
 model ResearchArtifact {
@@ -88,6 +94,8 @@ model ResearchArtifact {
   format    String
   content   String
   createdAt DateTime        @default(now())
+
+  @@index([sessionId])
 }
 
 model UserApiKey {
@@ -100,6 +108,8 @@ model UserApiKey {
   isDefault    Boolean  @default(false)
   createdAt    DateTime @default(now())
   lastUsedAt   DateTime?
+
+  @@index([userId])
 }
 
 model Document {
@@ -135,4 +145,6 @@ model UsageEvent {
   costUsd          Float?
   metadata         Json?
   createdAt        DateTime @default(now())
+
+  @@index([userId])
 }

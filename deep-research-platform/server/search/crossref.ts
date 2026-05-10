@@ -28,11 +28,13 @@ export async function searchCrossRef(query: string): Promise<RawSearchResult[]> 
   }
 
   const url = `https://api.crossref.org/works?query.bibliographic=${encodeURIComponent(query)}&rows=10`;
-  const res = await fetch(url, {
+  try {
+    const res = await fetch(url, {
     headers: {
       "User-Agent": `DeepScholar/1.0 (mailto:${mailto})`,
       Accept: "application/json",
     },
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -40,8 +42,8 @@ export async function searchCrossRef(query: string): Promise<RawSearchResult[]> 
     return [];
   }
 
-  const data = (await res.json()) as { message?: { items?: CrossRefItem[] } };
-  return (data.message?.items ?? []).map((item) => ({
+    const data = (await res.json()) as { message?: { items?: CrossRefItem[] } };
+    return (data.message?.items ?? []).map((item) => ({
     title: item.title?.[0] ?? null,
     url: item.URL ?? (item.DOI ? `https://doi.org/${item.DOI}` : null),
     doi: item.DOI ?? null,
@@ -50,5 +52,9 @@ export async function searchCrossRef(query: string): Promise<RawSearchResult[]> 
     year: item.issued?.["date-parts"]?.[0]?.[0] ?? null,
     abstract: item.abstract ?? null,
     sourceType: mapType(item.type),
-  }));
+    }));
+  } catch {
+    console.warn("CrossRef request timed out or failed");
+    return [];
+  }
 }
