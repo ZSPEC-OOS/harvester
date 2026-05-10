@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { deduplicateSources } from "@/lib/search/types";
 import { searchCrossRef } from "@/server/search/crossref";
 import { toCandidateSource } from "@/server/search/source-normalizer";
@@ -15,6 +16,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
   const { sessionId } = await params;
   const session = await prisma.researchSession.findUnique({ where: { id: sessionId } });
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+
+  const rateLimit = enforceRateLimit(session.userId, "steps");
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: rateLimit.headers });
+  }
 
   const queries = ((session.plan as { searchQueries?: string[] } | null)?.searchQueries ?? []).filter(Boolean);
   if (queries.length === 0) return NextResponse.json({ error: "No search queries in plan" }, { status: 400 });

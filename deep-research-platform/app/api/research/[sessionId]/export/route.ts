@@ -7,6 +7,7 @@ import { buildCsvExport } from "@/server/export/csv";
 import { buildDocxExport } from "@/server/export/docx";
 import { buildPdfPlaceholder } from "@/server/export/pdf";
 import type { ExportFormat, ExportSession } from "@/server/export/types";
+import { exportSchema } from "@/lib/validation";
 
 function sanitizeFilename(topic: string): string {
   return topic.replace(/[^a-zA-Z0-9\s_-]/g, "").trim().replace(/\s+/g, "_").slice(0, 50) || "research";
@@ -15,8 +16,9 @@ function sanitizeFilename(topic: string): string {
 export async function POST(req: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
   const body = await req.json();
-  const { userId, format } = body as { userId: string; format: ExportFormat };
-  if (!userId || !format) return NextResponse.json({ error: "Missing userId or format" }, { status: 400 });
+  const parsed = exportSchema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
+  const { userId, format } = parsed.data as { userId: string; format: ExportFormat };
 
   const session = await prisma.researchSession.findFirst({ where: { id: sessionId, userId } });
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
