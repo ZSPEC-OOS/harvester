@@ -1,9 +1,10 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm --prefix deep-research-platform run build",
-  "installCommand": "npm --prefix deep-research-platform install --legacy-peer-deps",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "outputDirectory": "deep-research-platform/.next",
   "functions": {
-    "app/api/**/*.ts": {
+    "deep-research-platform/app/api/**/*.ts": {
       "maxDuration": 30
     }
   }
