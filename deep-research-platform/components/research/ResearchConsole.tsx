@@ -44,6 +44,22 @@ export function ResearchConsole() {
   const log = (phase: ResearchLogEntry["phase"], message: string) => setLogs((p) => [...p, { id: crypto.randomUUID(), timestamp: new Date().toLocaleTimeString(), phase, message }]);
   const streamSse = async (url: string, onData: (payload: SSEEvent) => Promise<void> | void) => { const res = await fetch(url, { method: "POST", signal: controllerRef.current?.signal }); if (!res.body) throw new Error("No response stream"); const r = res.body.getReader(); const d = new TextDecoder(); let b = ""; while (true) { const { value, done } = await r.read(); if (done) break; b += d.decode(value, { stream: true }); const events = b.split("\n\n"); b = events.pop() || ""; for (const e of events) { if (!e.startsWith("data: ")) continue; await onData(JSON.parse(e.slice(6)) as SSEEvent); } } };
 
+
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        if (!isRunning && searchConfig.topic.trim()) {
+          void handleRun();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isRunning, searchConfig.topic]);
+
   const handleRun = async () => {
     if (!searchConfig.topic.trim()) return;
     setError(""); setOutput(""); setReport(""); setCitations([]); setSources([]); setCounts({ total: 0, journal: 0, preprint: 0, web: 0 }); setIsRunning(true); controllerRef.current = new AbortController();
