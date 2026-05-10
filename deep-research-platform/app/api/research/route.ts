@@ -16,6 +16,9 @@ export async function POST(req: NextRequest) {
       dateRangeStart: body.dateRangeStart,
       dateRangeEnd: body.dateRangeEnd,
       status: "planning",
+      projectId: body.projectId || null,
+      domainRestrictions: body.domainRestrictions || [],
+      excludedSourceTypes: body.excludedSourceTypes || [],
     },
   });
 
