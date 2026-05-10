@@ -1,5 +1,3 @@
-import fs from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -9,6 +7,7 @@ import { DEFAULT_RANKING_CONFIG, RankedSource } from "@/lib/ranking/types";
 import type { CandidateSource } from "@/types/research";
 import { logUsageEvent } from "@/lib/ai/usage";
 import { estimateTokensFromChars } from "@/lib/ai/cost";
+import { RANKER_SYSTEM_PROMPT } from "@/lib/prompts";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
@@ -22,7 +21,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
   const sources = (session.candidateSources as CandidateSource[] | null) ?? [];
   const topic = session.topic;
   const provider = await getProviderForUser(session.userId);
-  const systemPrompt = await fs.readFile(path.join(process.cwd(), "prompts", "ranker.system.md"), "utf8");
+  const systemPrompt = RANKER_SYSTEM_PROMPT;
 
   const stream = new ReadableStream({
     async start(controller) {

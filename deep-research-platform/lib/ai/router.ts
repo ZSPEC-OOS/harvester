@@ -11,6 +11,7 @@ export async function getProviderForUser(userId: string, modelId?: string) {
   const baseURL = process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com";
 
   if (saved) {
+    await prisma.userApiKey.update({ where: { id: saved.id }, data: { lastUsedAt: new Date() } });
     return new DeepSeekProvider(decryptApiKey(saved.encryptedKey), baseURL, modelId || saved.modelId || "deepseek-chat");
   }
 

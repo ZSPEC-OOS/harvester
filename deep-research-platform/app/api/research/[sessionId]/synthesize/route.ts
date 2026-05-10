@@ -3,10 +3,9 @@ import { prisma } from "@/lib/db";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getProviderForUser } from "@/lib/ai/router";
 import type { RankedSource, VerifiedCitation } from "@/lib/ranking/types";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { logUsageEvent } from "@/lib/ai/usage";
 import { estimateTokensFromChars } from "@/lib/ai/cost";
+import { SYNTHESIS_SYSTEM_PROMPT, SYNTHESIS_USER_PROMPT_TEMPLATE } from "@/lib/prompts";
 
 function fillTemplate(t: string, vars: Record<string, string>) { return Object.entries(vars).reduce((acc, [k, v]) => acc.replaceAll(`{{${k}}}`, v), t); }
 
@@ -24,10 +23,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
   const ranked = (session.rankedSources as RankedSource[] | null) ?? [];
   const verified = (session.verifiedCitations as VerifiedCitation[] | null) ?? [];
 
-  const [systemPrompt, userTemplate] = await Promise.all([
-    readFile(join(process.cwd(), "prompts/synthesis.system.md"), "utf8"),
-    readFile(join(process.cwd(), "prompts/synthesis.user.md"), "utf8"),
-  ]);
+  const systemPrompt = SYNTHESIS_SYSTEM_PROMPT;
+  const userTemplate = SYNTHESIS_USER_PROMPT_TEMPLATE;
 
   const sources = verified.map((v, i) => `[${i + 1}] ${(session.citationStyle === "mla" ? v.mla : v.apa)} | confidence=${Math.round(v.confidence * 100)}%`).join("\n");
   const questions = (plan.researchQuestions ?? []).map((q: string) => `- ${q}`).join("\n") || "- Explain core findings";

@@ -1,14 +1,13 @@
-import fs from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getProviderForUser } from "@/lib/ai/router";
 import { logUsageEvent } from "@/lib/ai/usage";
 import { estimateTokensFromChars } from "@/lib/ai/cost";
+import { PLANNER_SYSTEM_PROMPT, PLANNER_USER_PROMPT_TEMPLATE } from "@/lib/prompts";
 
 function applyTemplate(template: string, values: Record<string, string | number | undefined | null>) {
-  return template.replace(/\{\{(.*?)\}\}/g, (_, key) => String(values[key.trim()] ?? ""));
+  return Object.entries(values).reduce((acc, [key, value]) => acc.replaceAll(`{{${key}}}`, String(value ?? "")), template);
 }
 
 export async function POST(_req: Request, { params }: { params: Promise<{ sessionId: string }> }) {
@@ -21,10 +20,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: rateLimit.headers });
   }
 
-  const systemPath = path.join(process.cwd(), "prompts", "planner.system.md");
-  const userPath = path.join(process.cwd(), "prompts", "planner.user.md");
-  const [systemPrompt, userTemplate] = await Promise.all([fs.readFile(systemPath, "utf8"), fs.readFile(userPath, "utf8")]);
-  const userPrompt = applyTemplate(userTemplate, session as unknown as Record<string, string | number | undefined | null>);
+  const systemPrompt = PLANNER_SYSTEM_PROMPT;
+  const userPrompt = applyTemplate(PLANNER_USER_PROMPT_TEMPLATE, session as unknown as Record<string, string | number | undefined | null>);
 
   const provider = await getProviderForUser(session.userId);
 

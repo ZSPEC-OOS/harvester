@@ -12,10 +12,12 @@ export async function searchSerper(query: string): Promise<RawSearchResult[]> {
     return [];
   }
 
-  const res = await fetch("https://google.serper.dev/search", {
+  try {
+    const res = await fetch("https://google.serper.dev/search", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-API-KEY": key },
     body: JSON.stringify({ q: query, num: 10 }),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -23,8 +25,8 @@ export async function searchSerper(query: string): Promise<RawSearchResult[]> {
     return [];
   }
 
-  const data = (await res.json()) as { organic?: Array<{ title?: string; link?: string; snippet?: string }> };
-  return (data.organic ?? []).map((item) => ({
+    const data = (await res.json()) as { organic?: Array<{ title?: string; link?: string; snippet?: string }> };
+    return (data.organic ?? []).map((item) => ({
     title: item.title ?? null,
     url: item.link ?? null,
     year: extractYear(item.snippet ?? ""),
@@ -32,5 +34,9 @@ export async function searchSerper(query: string): Promise<RawSearchResult[]> {
     journal: null,
     doi: null,
     sourceType: "web",
-  }));
+    }));
+  } catch {
+    console.warn("Serper request timed out or failed");
+    return [];
+  }
 }
