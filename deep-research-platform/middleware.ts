@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+
 export function middleware(_request: NextRequest) {
   const response = NextResponse.next();
   response.headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.deepseek.com https://google.serper.dev https://api.crossref.org; frame-ancestors 'none';");
@@ -10,4 +11,7 @@ export function middleware(_request: NextRequest) {
   response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   return response;
 }
-export const config = { matcher: "/:path*" };
+
+export const config = {
+  matcher: ["/((?!api/health|_next/static|_next/image|favicon.ico).*)"],
+};
