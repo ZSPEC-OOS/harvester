@@ -1,18 +1,19 @@
-import { Settings } from 'lucide-react';
+import { PlusCircle, Settings } from 'lucide-react';
 
 type Props = {
   onMenuClick: () => void;
+  onNewTask: () => void;
   isRunning: boolean;
 };
 
-export function TopBar({ onMenuClick, isRunning }: Props) {
+export function TopBar({ onMenuClick, onNewTask, isRunning }: Props) {
   return (
     <header
       className="sticky top-0 z-30 backdrop-blur-xl"
       style={{
-        background: 'rgba(5, 8, 22, 0.96)',
-        borderBottom: '1px solid rgba(120, 140, 180, 0.10)',
-        boxShadow: '0 1px 0 rgba(255,255,255,0.025), 0 4px 32px rgba(0,0,0,0.35)',
+        background: 'rgba(6, 11, 28, 0.97)',
+        borderBottom: '1px solid rgba(130, 155, 200, 0.18)',
+        boxShadow: '0 1px 0 rgba(255,255,255,0.04), 0 4px 32px rgba(0,0,0,0.4)',
       }}
     >
       <div className="relative mx-auto flex max-w-[1360px] items-center px-4 py-3 sm:px-6">
@@ -22,17 +23,17 @@ export function TopBar({ onMenuClick, isRunning }: Props) {
           onClick={onMenuClick}
           className="flex h-8 w-8 items-center justify-center rounded-lg transition"
           style={{
-            background: 'rgba(33, 85, 214, 0.08)',
-            border: '1px solid rgba(120, 140, 180, 0.16)',
-            color: '#94A3B8',
+            background: 'rgba(33, 85, 214, 0.10)',
+            border: '1px solid rgba(130, 155, 200, 0.22)',
+            color: '#A8BDD3',
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(33, 85, 214, 0.15)';
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(33, 85, 214, 0.18)';
             (e.currentTarget as HTMLButtonElement).style.color = '#F3F6FB';
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(33, 85, 214, 0.08)';
-            (e.currentTarget as HTMLButtonElement).style.color = '#94A3B8';
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(33, 85, 214, 0.10)';
+            (e.currentTarget as HTMLButtonElement).style.color = '#A8BDD3';
           }}
           aria-label="Open settings"
         >
@@ -49,20 +50,49 @@ export function TopBar({ onMenuClick, isRunning }: Props) {
           </h1>
           <p
             className="mt-0.5 text-[9px] tracking-[0.28em] uppercase"
-            style={{ color: '#3D5070', letterSpacing: '0.26em' }}
+            style={{ color: '#5E7898', letterSpacing: '0.26em' }}
           >
             AI-Driven Research
           </p>
         </div>
 
-        {/* Right — status badge */}
-        <div className="ml-auto">
+        {/* Right — new task + status */}
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onNewTask}
+            disabled={isRunning}
+            title={isRunning ? 'Stop the current run before starting a new task' : 'Clear all results and start a new research task'}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
+            style={{
+              background: 'linear-gradient(135deg, rgba(33,85,214,0.22) 0%, rgba(38,191,166,0.16) 100%)',
+              border: '1px solid rgba(38,191,166,0.32)',
+              color: '#6FD8C4',
+              boxShadow: '0 2px 10px rgba(33,85,214,0.18)',
+            }}
+            onMouseEnter={(e) => {
+              if (!isRunning) {
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  'linear-gradient(135deg, rgba(33,85,214,0.34) 0%, rgba(38,191,166,0.26) 100%)';
+                (e.currentTarget as HTMLButtonElement).style.color = '#8FEADA';
+              }
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background =
+                'linear-gradient(135deg, rgba(33,85,214,0.22) 0%, rgba(38,191,166,0.16) 100%)';
+              (e.currentTarget as HTMLButtonElement).style.color = '#6FD8C4';
+            }}
+          >
+            <PlusCircle size={12} />
+            New Task
+          </button>
+
           {isRunning ? (
             <span
               className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium"
               style={{
-                background: 'rgba(245, 158, 11, 0.08)',
-                border: '1px solid rgba(245, 158, 11, 0.25)',
+                background: 'rgba(245, 158, 11, 0.10)',
+                border: '1px solid rgba(245, 158, 11, 0.28)',
                 color: '#FCD34D',
               }}
             >
@@ -73,8 +103,8 @@ export function TopBar({ onMenuClick, isRunning }: Props) {
             <span
               className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium"
               style={{
-                background: 'rgba(33, 85, 214, 0.07)',
-                border: '1px solid rgba(33, 85, 214, 0.22)',
+                background: 'rgba(33, 85, 214, 0.09)',
+                border: '1px solid rgba(33, 85, 214, 0.26)',
                 color: '#93B4FF',
               }}
             >

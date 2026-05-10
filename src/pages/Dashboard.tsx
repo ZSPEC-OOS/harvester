@@ -491,6 +491,25 @@ export function Dashboard() {
     }
   }, [papers, expandedTopic, sourceCounts]);
 
+  // ── New Task ───────────────────────────────────────────────────────────────
+
+  const handleNewTask = () => {
+    if (isRunning) return;
+    setSettings((s) => ({ ...s, topic: '' }));
+    setExpandedTopic('');
+    setExpandedTopicDraft('');
+    setExpansionAccepted(false);
+    setClarifyQuestions([]);
+    setClarifyAnswers([]);
+    setClarifyPhase('idle');
+    setPapers([]);
+    setSourceCounts({});
+    setLines(seedLines);
+    setActiveStep(0);
+    cancelRef.current = false;
+    try { localStorage.removeItem('paper-harvester-session'); } catch { /* ignore */ }
+  };
+
   // ── Derived ────────────────────────────────────────────────────────────────
 
   const stamp = () => new Date().toLocaleTimeString('en-US', { hour12: false });
@@ -963,8 +982,8 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
             <div
               className="mt-3 space-y-3 rounded-lg p-4"
               style={{
-                background: 'rgba(3,8,20,0.55)',
-                border: '1px solid rgba(33,85,214,0.20)',
+                background: 'rgba(8,18,44,0.68)',
+                border: '1px solid rgba(33,85,214,0.28)',
               }}
             >
               <p className="text-xs font-medium" style={{ color: '#93B4FF' }}>
@@ -974,7 +993,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                 <div key={i}>
                   <label
                     className="mb-1.5 block text-[11px] uppercase tracking-wide"
-                    style={{ color: '#64748B' }}
+                    style={{ color: '#8AAAC6' }}
                   >
                     {q.question}
                   </label>
@@ -1010,7 +1029,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                   disabled={isExpanding}
                   className="rounded-lg px-4 py-2 text-sm transition disabled:opacity-40"
                   style={{
-                    border: '1px solid rgba(120,140,180,0.14)',
+                    border: '1px solid rgba(130,155,200,0.26)',
                     color: '#64748B',
                   }}
                 >
@@ -1025,7 +1044,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
               <div>
                 <p
                   className="mb-1.5 text-[11px] font-medium uppercase tracking-wide"
-                  style={{ color: '#64748B' }}
+                  style={{ color: '#8AAAC6' }}
                 >
                   Expanded Scope
                 </p>
@@ -1034,10 +1053,10 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                   readOnly
                   className="min-h-[110px] w-full rounded-lg px-4 py-3 text-xs leading-relaxed"
                   style={{
-                    background: 'rgba(2,6,18,0.72)',
-                    border: '1px solid rgba(120,140,180,0.09)',
-                    color: '#94A3B8',
-                    boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.4)',
+                    background: 'rgba(6,14,36,0.80)',
+                    border: '1px solid rgba(130,155,200,0.17)',
+                    color: '#AABDD3',
+                    boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.35)',
                     resize: 'none',
                   }}
                 />
@@ -1045,7 +1064,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
               <div>
                 <p
                   className="mb-1.5 text-[11px] font-medium uppercase tracking-wide"
-                  style={{ color: '#64748B' }}
+                  style={{ color: '#8AAAC6' }}
                 >
                   Refine (optional)
                 </p>
@@ -1180,7 +1199,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
 
   return (
     <div className="min-h-screen bg-transparent text-white">
-      <TopBar onMenuClick={() => setSettingsMenuOpen(true)} isRunning={isRunning} />
+      <TopBar onMenuClick={() => setSettingsMenuOpen(true)} onNewTask={handleNewTask} isRunning={isRunning} />
       <Container>
         <div className="relative grid grid-cols-1 gap-4 pb-16 xl:grid-cols-[minmax(0,800px)_340px] xl:items-start xl:pb-0">
           {cards}
@@ -1220,7 +1239,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
           className={`fixed inset-x-0 bottom-[42px] z-30 max-h-[70vh] overflow-auto rounded-t-2xl p-3 transition-transform xl:hidden ${sheetOpen ? 'translate-y-0' : 'translate-y-[110%]'}`}
           style={{
             background: 'rgba(5,10,24,0.98)',
-            border: '1px solid rgba(120,140,180,0.12)',
+            border: '1px solid rgba(130,155,200,0.22)',
             borderBottom: 'none',
             boxShadow: '0 -16px 48px rgba(0,0,0,0.6)',
             backdropFilter: 'blur(20px)',
@@ -1247,7 +1266,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
               className="absolute left-0 top-0 h-full w-full max-w-sm overflow-y-auto shadow-2xl"
               style={{
                 background: '#050B1A',
-                borderRight: '1px solid rgba(120,140,180,0.12)',
+                borderRight: '1px solid rgba(130,155,200,0.22)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -1255,7 +1274,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                 className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 backdrop-blur"
                 style={{
                   background: 'rgba(5,11,26,0.96)',
-                  borderBottom: '1px solid rgba(120,140,180,0.10)',
+                  borderBottom: '1px solid rgba(130,155,200,0.20)',
                 }}
               >
                 <h2 className="text-sm font-semibold" style={{ color: '#F3F6FB' }}>
@@ -1267,7 +1286,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                   className="rounded-md px-2.5 py-1 text-xs transition"
                   style={{
                     background: 'rgba(33,85,214,0.08)',
-                    border: '1px solid rgba(120,140,180,0.16)',
+                    border: '1px solid rgba(130,155,200,0.28)',
                     color: '#94A3B8',
                   }}
                 >
@@ -1318,7 +1337,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                 {/* History */}
                 <p className="section-label px-0.5 pt-1">History</p>
                 {history.length === 0 ? (
-                  <p className="px-0.5 text-xs" style={{ color: '#334155' }}>
+                  <p className="px-0.5 text-xs" style={{ color: '#506080' }}>
                     No completed runs yet.
                   </p>
                 ) : (
@@ -1328,8 +1347,8 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                         key={entry.id}
                         className="flex items-center justify-between rounded-lg px-3 py-2"
                         style={{
-                          background: 'rgba(8,18,38,0.6)',
-                          border: '1px solid rgba(120,140,180,0.10)',
+                          background: 'rgba(12,24,52,0.75)',
+                          border: '1px solid rgba(130,155,200,0.20)',
                         }}
                       >
                         <div className="min-w-0 flex-1">
@@ -1365,7 +1384,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                                   onClick={() => setRestoreTopicId(null)}
                                   className="rounded px-2 py-0.5 text-[10px]"
                                   style={{
-                                    border: '1px solid rgba(120,140,180,0.14)',
+                                    border: '1px solid rgba(130,155,200,0.26)',
                                     color: '#475569',
                                   }}
                                 >
@@ -1379,10 +1398,10 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                               className="w-full text-left"
                               onClick={() => setRestoreTopicId(entry.id)}
                             >
-                              <p className="truncate text-xs" style={{ color: '#CBD5E1' }}>
+                              <p className="truncate text-xs" style={{ color: '#D4E0F0' }}>
                                 {entry.topic}
                               </p>
-                              <p className="text-[10px]" style={{ color: '#3D5070' }}>
+                              <p className="text-[10px]" style={{ color: '#607A9E' }}>
                                 {entry.count.toLocaleString()} refs · {formatHistoryDate(entry.timestamp)}
                               </p>
                             </button>
@@ -1400,7 +1419,7 @@ Return ONLY JSON: {"remove":[indices]}. Be conservative with removals when uncer
                             }
                           }}
                           className="ml-2 shrink-0 transition"
-                          style={{ color: '#334155' }}
+                          style={{ color: '#506080' }}
                           aria-label="Delete"
                         >
                           <Trash2 size={13} />

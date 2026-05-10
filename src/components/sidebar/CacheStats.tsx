@@ -18,11 +18,11 @@ export function CacheStats({ gatheredCount, targetCount, sourceCounts = {} }: Pr
 
   return (
     <GlassCard className="p-5">
-      <h2 className="mb-3 text-sm font-semibold text-white">Progress</h2>
+      <h2 className="mb-3 text-sm font-semibold" style={{ color: '#F3F6FB' }}>Progress</h2>
 
       <div className="mx-auto flex w-full max-w-[200px] items-center justify-center">
         <svg viewBox="0 0 180 180" className="h-40 w-40">
-          <circle cx="90" cy="90" r={radius} stroke="rgba(148,163,184,0.15)" strokeWidth="10" fill="none" />
+          <circle cx="90" cy="90" r={radius} stroke="rgba(130,155,200,0.20)" strokeWidth="10" fill="none" />
           <circle
             cx="90"
             cy="90"
@@ -42,39 +42,39 @@ export function CacheStats({ gatheredCount, targetCount, sourceCounts = {} }: Pr
               <stop offset="100%" stopColor="#8b5cf6" />
             </linearGradient>
           </defs>
-          <text x="90" y="86" textAnchor="middle" className="fill-white text-[26px] font-bold">
+          <text x="90" y="86" textAnchor="middle" fill="#F3F6FB" fontSize="26" fontWeight="700">
             {progress}%
           </text>
-          <text x="90" y="106" textAnchor="middle" className="fill-slate-400 text-[11px]">
+          <text x="90" y="106" textAnchor="middle" fill="#8AAAC6" fontSize="11">
             complete
           </text>
         </svg>
       </div>
 
-      <div className="mt-3 space-y-1 border-t border-white/10 pt-3">
+      <div className="mt-3 space-y-1 pt-3" style={{ borderTop: '1px solid rgba(130,155,200,0.18)' }}>
         <div className="flex items-center justify-between text-xs">
-          <span className="text-slate-400">Gathered</span>
-          <span className="font-medium text-white">{gatheredCount.toLocaleString()}</span>
+          <span style={{ color: '#8AAAC6' }}>Gathered</span>
+          <span className="font-medium" style={{ color: '#F3F6FB' }}>{gatheredCount.toLocaleString()}</span>
         </div>
         <div className="flex items-center justify-between text-xs">
-          <span className="text-slate-400">Target</span>
-          <span className="font-medium text-slate-300">{targetCount.toLocaleString()}</span>
+          <span style={{ color: '#8AAAC6' }}>Target</span>
+          <span className="font-medium" style={{ color: '#AABDD3' }}>{targetCount.toLocaleString()}</span>
         </div>
       </div>
 
       {sourceEntries.length > 0 && (
-        <div className="mt-3 space-y-1.5 border-t border-white/10 pt-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">By Source</p>
+        <div className="mt-3 space-y-1.5 pt-3" style={{ borderTop: '1px solid rgba(130,155,200,0.18)' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#7090B8' }}>By Source</p>
           {sourceEntries.map(([provider, count]) => (
             <div key={provider} className="flex items-center gap-2">
-              <span className="w-20 shrink-0 truncate text-[10px] text-slate-400">{provider}</span>
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
+              <span className="w-20 shrink-0 truncate text-[10px]" style={{ color: '#8AAAC6' }}>{provider}</span>
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: 'rgba(130,155,200,0.12)' }}>
                 <div
-                  className="h-1.5 rounded-full bg-cyan-500/60 transition-all duration-500"
-                  style={{ width: `${Math.round((count / maxCount) * 100)}%` }}
+                  className="h-1.5 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.round((count / maxCount) * 100)}%`, background: 'rgba(34,211,238,0.65)' }}
                 />
               </div>
-              <span className="w-6 text-right text-[10px] text-slate-400">{count}</span>
+              <span className="w-6 text-right text-[10px]" style={{ color: '#8AAAC6' }}>{count}</span>
             </div>
           ))}
         </div>

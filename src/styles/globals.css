@@ -10,11 +10,11 @@
 
 body {
   @apply m-0 min-h-screen font-sans antialiased;
-  color: #E8EDF5;
+  color: #EDF1F9;
   background-color: #050816;
   background-image:
-    radial-gradient(ellipse 80% 40% at 15% -5%, rgba(33, 85, 214, 0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 30% at 85% 0%,  rgba(38, 191, 166, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 40% at 15% -5%, rgba(33, 85, 214, 0.13) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 30% at 85% 0%,  rgba(38, 191, 166, 0.08) 0%, transparent 50%),
     radial-gradient(ellipse 100% 60% at 50% 110%, rgba(5, 12, 30, 0.9) 0%, transparent 70%),
     linear-gradient(170deg, #050816 0%, #07111F 55%, #0A1630 100%);
   background-attachment: fixed;
@@ -23,7 +23,7 @@ body {
 /* Scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(100, 120, 160, 0.3) transparent;
+  scrollbar-color: rgba(120, 150, 195, 0.4) transparent;
 }
 ::-webkit-scrollbar {
   width: 4px;
@@ -33,63 +33,49 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 120, 160, 0.3);
+  background: rgba(120, 150, 195, 0.4);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 120, 160, 0.5);
+  background: rgba(120, 150, 195, 0.6);
 }
 
 /* Recessed input shared style */
 .input-recessed {
-  background-color: rgba(3, 8, 20, 0.75);
-  border: 1px solid rgba(120, 140, 180, 0.16);
+  background-color: rgba(4, 10, 26, 0.80);
+  border: 1px solid rgba(130, 155, 200, 0.22);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45);
-  color: #E8EDF5;
+  color: #EDF1F9;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .input-recessed::placeholder {
-  color: #475569;
+  color: #6E8BAD;
 }
 .input-recessed:focus {
   outline: none;
-  border-color: rgba(59, 130, 246, 0.45);
+  border-color: rgba(59, 130, 246, 0.50);
   box-shadow:
     inset 0 1px 3px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(59, 130, 246, 0.18);
+    0 0 0 1px rgba(59, 130, 246, 0.22);
 }
 
 /* Native select recessed */
 select.input-recessed option {
   background-color: #07111F;
-  color: #E8EDF5;
+  color: #EDF1F9;
 }
 
-/* Subtle section separator label */
+/* Section separator labels */
 .section-label {
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #3D5070;
+  color: #7B98BC;
 }
 
-
-/* Readability boost: keep dark theme but increase text contrast */
-body {
-  color: #F2F6FF;
-}
-
-.input-recessed::placeholder {
-  color: #7C8EAF;
-}
-
-.section-label {
-  color: #6D82A8;
-}
-
-/* Lift common muted Tailwind text shades used across cards */
-:where(.text-slate-500) { color: rgb(134 160 201) !important; }
-:where(.text-slate-400) { color: rgb(162 185 222) !important; }
-:where(.text-slate-300) { color: rgb(204 220 246) !important; }
-:where(.text-gray-400)  { color: rgb(170 188 220) !important; }
+/* Lift Tailwind muted text shades used across cards */
+:where(.text-slate-500) { color: rgb(148 172 210) !important; }
+:where(.text-slate-400) { color: rgb(174 198 232) !important; }
+:where(.text-slate-300) { color: rgb(210 225 248) !important; }
+:where(.text-gray-400)  { color: rgb(180 200 228) !important; }

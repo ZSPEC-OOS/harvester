@@ -22,7 +22,7 @@ export function OutputCard({
       <div className="mb-4 flex items-center gap-2.5">
         <span
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-          style={{ background: 'rgba(38,191,166,0.10)', color: '#5DD3C2' }}
+          style={{ background: 'rgba(38,191,166,0.14)', color: '#5DD3C2' }}
         >
           <Sparkles size={13} />
         </span>
@@ -38,8 +38,8 @@ export function OutputCard({
           onChange={setExternalAiEnabled}
           label="Use AI Provider for topic expansion"
         />
-        <p className="ml-6 mt-1 text-[11px]" style={{ color: '#475569' }}>
-          When off, WISP or local fallback is used instead
+        <p className="ml-6 mt-1 text-[11px]" style={{ color: '#7A95B4' }}>
+          When off, a local template is used instead
         </p>
       </div>
 
@@ -47,8 +47,8 @@ export function OutputCard({
         <div
           className="rounded-lg px-3 py-2.5 text-xs"
           style={{
-            background: 'rgba(3,8,20,0.5)',
-            border: '1px solid rgba(120,140,180,0.12)',
+            background: 'rgba(8,18,44,0.65)',
+            border: '1px solid rgba(130,155,200,0.20)',
           }}
         >
           {apiConfigured ? (
@@ -69,18 +69,18 @@ export function OutputCard({
         <div className="mt-3">
           <p
             className="mb-1.5 text-[11px] font-medium uppercase tracking-wide"
-            style={{ color: '#64748B' }}
+            style={{ color: '#8AAAC6' }}
           >
             Current Expanded Topic
           </p>
           <div
             className="max-h-28 overflow-auto rounded-lg px-3 py-2"
             style={{
-              background: 'rgba(3,8,20,0.6)',
-              border: '1px solid rgba(120,140,180,0.10)',
+              background: 'rgba(6,14,36,0.80)',
+              border: '1px solid rgba(130,155,200,0.18)',
             }}
           >
-            <p className="text-xs leading-relaxed" style={{ color: '#94A3B8' }}>
+            <p className="text-xs leading-relaxed" style={{ color: '#AABDD3' }}>
               {expandedTopic}
             </p>
           </div>

@@ -31,7 +31,7 @@ export function SearchConfigCard(props: Props) {
       <div className="mb-4 flex items-center gap-2.5">
         <span
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-          style={{ background: 'rgba(33,85,214,0.14)', color: '#6B9EFF' }}
+          style={{ background: 'rgba(33,85,214,0.18)', color: '#7BAAEE' }}
         >
           <SlidersHorizontal size={13} />
         </span>
@@ -42,7 +42,7 @@ export function SearchConfigCard(props: Props) {
 
       <div className="space-y-3">
         <div>
-          <label className={labelCls} htmlFor="topic" style={{ color: '#64748B' }}>
+          <label className={labelCls} htmlFor="topic" style={{ color: '#8AAAC6' }}>
             Topic
           </label>
           <input
@@ -55,7 +55,7 @@ export function SearchConfigCard(props: Props) {
         </div>
 
         <div>
-          <label className={labelCls} htmlFor="reference-style" style={{ color: '#64748B' }}>
+          <label className={labelCls} htmlFor="reference-style" style={{ color: '#8AAAC6' }}>
             Citation Style
           </label>
           <select
@@ -74,7 +74,7 @@ export function SearchConfigCard(props: Props) {
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className={labelCls} htmlFor="start-year" style={{ color: '#64748B' }}>
+            <label className={labelCls} htmlFor="start-year" style={{ color: '#8AAAC6' }}>
               Start Year
             </label>
             <input
@@ -88,7 +88,7 @@ export function SearchConfigCard(props: Props) {
             />
           </div>
           <div>
-            <label className={labelCls} htmlFor="end-year" style={{ color: '#64748B' }}>
+            <label className={labelCls} htmlFor="end-year" style={{ color: '#8AAAC6' }}>
               End Year
             </label>
             <input
@@ -105,23 +105,21 @@ export function SearchConfigCard(props: Props) {
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <label className={labelCls} htmlFor="depth" style={{ color: '#64748B' }}>
+            <label className={labelCls} htmlFor="depth" style={{ color: '#8AAAC6' }}>
               Search Breadth
             </label>
-            <span className="text-xs font-medium" style={{ color: '#94A3B8' }}>
+            <span className="text-xs font-medium" style={{ color: '#AABDD3' }}>
               {props.searchDepth} passes
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[11px]" style={{ color: '#3D5070' }}>
+          <div className="flex items-center gap-2 text-[11px]" style={{ color: '#607A9E' }}>
             <span>1</span>
             <Slider id="depth" value={props.searchDepth} onChange={props.setSearchDepth} min={1} max={500} />
             <span>500</span>
           </div>
         </div>
 
-        <div
-          className="grid grid-cols-3 gap-2 rounded-lg pt-0.5"
-        >
+        <div className="grid grid-cols-3 gap-2 rounded-lg pt-0.5">
           <Checkbox id="include-preprints" checked={props.includePreprints} onChange={props.setIncludePreprints} label="Preprints" />
           <Checkbox id="exclude-patents"   checked={props.excludePatents}   onChange={props.setExcludePatents}   label="No patents" />
           <Checkbox id="only-oa"           checked={props.onlyOpenAccess}   onChange={props.setOnlyOpenAccess}   label="Open access" />

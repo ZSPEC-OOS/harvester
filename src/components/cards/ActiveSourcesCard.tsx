@@ -28,7 +28,7 @@ export function ActiveSourcesCard({ estimatedPapers }: Props) {
         <div className="flex items-center gap-2.5 text-left">
           <span
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-            style={{ background: 'rgba(33,85,214,0.14)', color: '#6B9EFF' }}
+            style={{ background: 'rgba(33,85,214,0.18)', color: '#7BAAEE' }}
           >
             <Database size={13} />
           </span>
@@ -36,30 +36,30 @@ export function ActiveSourcesCard({ estimatedPapers }: Props) {
             <h3 className="text-sm font-semibold" style={{ color: '#F3F6FB' }}>
               Reference Sources
             </h3>
-            <p className="text-[11px]" style={{ color: '#64748B' }}>
+            <p className="text-[11px]" style={{ color: '#8AAAC6' }}>
               {SOURCES.length} direct APIs · up to ~{estimatedPapers.toLocaleString()} refs
             </p>
           </div>
         </div>
         {open
-          ? <ChevronUp size={13} className="shrink-0" style={{ color: '#64748B' }} />
-          : <ChevronDown size={13} className="shrink-0" style={{ color: '#64748B' }} />
+          ? <ChevronUp size={13} className="shrink-0" style={{ color: '#8AAAC6' }} />
+          : <ChevronDown size={13} className="shrink-0" style={{ color: '#8AAAC6' }} />
         }
       </button>
 
       {open && (
-        <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(120,140,180,0.10)' }}>
+        <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(130,155,200,0.18)' }}>
           <div className="space-y-2">
             {SOURCES.map((s) => (
               <div key={s.id} className="flex items-start gap-2.5">
                 <span
                   className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
-                  style={{ background: '#6B9EFF' }}
+                  style={{ background: '#7BAAEE' }}
                 />
-                <span className="text-xs font-medium" style={{ color: '#CBD5E1' }}>
+                <span className="text-xs font-medium" style={{ color: '#D4E0F0' }}>
                   {s.label}
                 </span>
-                <span className="text-[11px] leading-relaxed" style={{ color: '#475569' }}>
+                <span className="text-[11px] leading-relaxed" style={{ color: '#7A95B4' }}>
                   — {s.desc}
                 </span>
               </div>
