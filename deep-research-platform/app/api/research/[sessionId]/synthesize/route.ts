@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getProviderForUser } from "@/lib/ai/router";
 import type { RankedSource, VerifiedCitation } from "@/lib/ranking/types";
 import { readFile } from "node:fs/promises";
@@ -13,6 +14,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
   const { sessionId } = await params;
   const session = await prisma.researchSession.findUnique({ where: { id: sessionId } });
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+
+  const rateLimit = enforceRateLimit(session.userId, "steps");
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: rateLimit.headers });
+  }
 
   const plan = (session.plan as Record<string, any> | null) ?? {};
   const ranked = (session.rankedSources as RankedSource[] | null) ?? [];

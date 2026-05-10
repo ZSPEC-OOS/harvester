@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "@/components/providers/UserProvider";
+import { ErrorBoundary } from "@/components/providers/ErrorBoundary";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -18,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans`}>
-        <UserProvider>{children}</UserProvider>
+        <ErrorBoundary><UserProvider>{children}</UserProvider></ErrorBoundary>
       </body>
     </html>
   );
