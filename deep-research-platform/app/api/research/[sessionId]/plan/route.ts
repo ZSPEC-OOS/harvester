@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getProviderForUser } from "@/lib/ai/router";
 import { logUsageEvent } from "@/lib/ai/usage";
+import { estimateTokensFromChars } from "@/lib/ai/cost";
 
 function applyTemplate(template: string, values: Record<string, string | number | undefined | null>) {
   return template.replace(/\{\{(.*?)\}\}/g, (_, key) => String(values[key.trim()] ?? ""));
@@ -32,7 +33,15 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
         }
         const parsed = JSON.parse(full);
         await prisma.researchSession.update({ where: { id: sessionId }, data: { plan: parsed, status: "searching" } });
-        await logUsageEvent({ userId: session.userId, sessionId, eventType: "planner_complete", provider: provider.provider, model: provider.model });
+        await logUsageEvent({
+          userId: session.userId,
+          sessionId,
+          eventType: "planner_complete",
+          provider: provider.provider,
+          model: provider.model,
+          promptTokens: estimateTokensFromChars(userPrompt.length + systemPrompt.length),
+          completionTokens: estimateTokensFromChars(full.length),
+        });
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, plan: parsed })}\n\n`));
       } catch (error) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Planner failed" })}\n\n`));

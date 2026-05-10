@@ -12,6 +12,7 @@ import { CitationPanel } from "./CitationPanel";
 import { ReportViewer } from "./ReportViewer";
 import { SearchConfigCard } from "../cards/SearchConfigCard";
 import { ConsoleLog } from "../console/ConsoleLog";
+import { CostMeter } from "@/components/sidebar/CostMeter";
 import type { ApiConfig, CandidateSource, ResearchLogEntry, SearchConfig } from "@/types/research";
 import type { VerifiedCitation } from "@/lib/ranking/types";
 
@@ -56,5 +57,5 @@ export function ResearchConsole() {
     } catch (e) { if ((e as Error).name !== "AbortError") { setError((e as Error).message); log("error", (e as Error).message); } } finally { setIsRunning(false); }
   };
 
-  return <div className="grid gap-6 lg:grid-cols-4"><div className="space-y-4 lg:col-span-1"><SearchConfigCard config={searchConfig} onChange={setSearchConfig} projects={projects} /><ApiConfigCard config={apiConfig} onChange={setApiConfig} /><ActionCard onRun={handleRun} onStop={() => controllerRef.current?.abort()} sessionId={sessionId} estimatedPapers={Math.max(25, searchConfig.searchDepth * 2)} isRunning={isRunning} disableRun={!searchConfig.topic.trim()} /><ActiveSourcesCard counts={counts} /></div><div className="space-y-4 lg:col-span-2">{error && <ErrorBox message={error} />}<ConsoleLog entries={logs} /><OutputCard output={output} isLoading={isRunning} /><ReportViewer report={report} isStreaming={isRunning} /><CitationPanel citations={citations} citationStyle={searchConfig.citationStyle as "apa" | "mla"} /><ReferenceResultsCard sources={sources} /></div><div className="lg:col-span-1"><h3 className="mb-2 text-sm font-semibold">Recent Sessions</h3>{userId ? <SessionList userId={userId} limit={10} /> : <p className="text-sm text-ds-muted">Initializing user...</p>}</div></div>;
+  return <div className="grid gap-6 lg:grid-cols-4"><div className="space-y-4 lg:col-span-1"><SearchConfigCard config={searchConfig} onChange={setSearchConfig} projects={projects} /><ApiConfigCard config={apiConfig} onChange={setApiConfig} /><ActionCard onRun={handleRun} onStop={() => controllerRef.current?.abort()} sessionId={sessionId} estimatedPapers={Math.max(25, searchConfig.searchDepth * 2)} isRunning={isRunning} disableRun={!searchConfig.topic.trim()} /><ActiveSourcesCard counts={counts} /></div><div className="space-y-4 lg:col-span-2">{error && <ErrorBox message={error} />}<ConsoleLog entries={logs} /><OutputCard output={output} isLoading={isRunning} /><ReportViewer report={report} isStreaming={isRunning} /><CitationPanel citations={citations} citationStyle={searchConfig.citationStyle as "apa" | "mla"} /><ReferenceResultsCard sources={sources} /></div><div className="lg:col-span-1 space-y-4">{userId && <CostMeter userId={userId} />}<div><h3 className="mb-2 text-sm font-semibold">Recent Sessions</h3>{userId ? <SessionList userId={userId} limit={10} /> : <p className="text-sm text-ds-muted">Initializing user...</p>}</div></div></div>;
 }
