@@ -1,0 +1,16 @@
+{
+  "name": "harvester",
+  "private": true,
+  "workspaces": [
+    "deep-research-platform"
+  ],
+  "scripts": {
+    "dev": "npm --workspace deep-research-platform run dev",
+    "build": "npm --workspace deep-research-platform run build",
+    "start": "npm --workspace deep-research-platform run start",
+    "test": "npm --workspace deep-research-platform run test"
+  },
+  "dependencies": {
+    "next": "^15.1.0"
+  }
+}
