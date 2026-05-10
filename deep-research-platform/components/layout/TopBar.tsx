@@ -18,6 +18,7 @@ export function TopBar() {
           <nav className="flex gap-2 text-sm">
             <Link className={`rounded px-2 py-1 ${isActive('/dashboard') ? 'bg-ds-primary/20 text-blue-200' : 'text-ds-muted'}`} href="/dashboard">Dashboard</Link>
             <Link className={`rounded px-2 py-1 ${isActive('/projects') ? 'bg-ds-primary/20 text-blue-200' : 'text-ds-muted'}`} href="/projects">Projects</Link>
+          <Link className={`rounded px-2 py-1 ${isActive('/settings') ? 'bg-ds-primary/20 text-blue-200' : 'text-ds-muted'}`} href="/settings">Settings</Link>
           </nav>
         </div>
       </div>

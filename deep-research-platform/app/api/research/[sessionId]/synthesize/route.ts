@@ -4,6 +4,8 @@ import { getProviderForUser } from "@/lib/ai/router";
 import type { RankedSource, VerifiedCitation } from "@/lib/ranking/types";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { logUsageEvent } from "@/lib/ai/usage";
+import { estimateTokensFromChars } from "@/lib/ai/cost";
 
 function fillTemplate(t: string, vars: Record<string, string>) { return Object.entries(vars).reduce((acc, [k, v]) => acc.replaceAll(`{{${k}}}`, v), t); }
 
@@ -45,6 +47,15 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
           controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "token", token })}\n\n`));
         }
         await prisma.researchSession.update({ where: { id: sessionId }, data: { finalReport: report, status: "complete" } });
+        await logUsageEvent({
+          userId: session.userId,
+          sessionId,
+          eventType: "synthesis_complete",
+          provider: provider.provider,
+          model: provider.model,
+          promptTokens: estimateTokensFromChars(userPrompt.length + systemPrompt.length),
+          completionTokens: estimateTokensFromChars(report.length),
+        });
         await prisma.researchArtifact.create({ data: { sessionId, type: "final_report", format: "markdown", content: report } });
         controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "done", length: report.length })}\n\n`));
       } catch {

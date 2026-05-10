@@ -6,6 +6,8 @@ import { getProviderForUser } from "@/lib/ai/router";
 import { scoreAuthority, scoreEvidence, scoreRecency } from "@/lib/ranking/heuristics";
 import { DEFAULT_RANKING_CONFIG, RankedSource } from "@/lib/ranking/types";
 import type { CandidateSource } from "@/types/research";
+import { logUsageEvent } from "@/lib/ai/usage";
+import { estimateTokensFromChars } from "@/lib/ai/cost";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
@@ -26,7 +28,18 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
           const prompt = `Topic: ${topic}\nTitle: ${s.title}\nAbstract: ${s.abstract ?? ""}\nYear: ${s.year ?? "unknown"}\nVenue: ${s.journal}`;
           let relevance = 5; let rationale = "Moderate topical fit.";
           try {
-            const parsed = JSON.parse(await provider.generateText(prompt, systemPrompt)) as { relevance?: number; rationale?: string };
+            const modelOutput = await provider.generateText(prompt, systemPrompt);
+            const parsed = JSON.parse(modelOutput) as { relevance?: number; rationale?: string };
+            await logUsageEvent({
+              userId: session.userId,
+              sessionId,
+              eventType: "rank_source",
+              provider: provider.provider,
+              model: provider.model,
+              promptTokens: estimateTokensFromChars(prompt.length + systemPrompt.length),
+              completionTokens: estimateTokensFromChars(modelOutput.length),
+              metadata: { sourceTitle: s.title },
+            });
             relevance = Math.max(0, Math.min(10, Number(parsed.relevance ?? 5)));
             rationale = parsed.rationale ?? rationale;
           } catch {}

@@ -1,0 +1,7 @@
+"use client";
+
+export function UsageChart({ daily }: { daily: Array<{ date: string; costUsd: number; promptTokens: number; completionTokens: number; calls: number }> }) {
+  const maxCost = Math.max(0.01, ...daily.map((d) => d.costUsd));
+  const maxTokens = Math.max(1, ...daily.map((d) => d.promptTokens + d.completionTokens));
+  return <div className="space-y-6"><div><h4 className="mb-2 text-sm font-semibold">Daily Cost (USD)</h4><div className="flex h-40 items-end gap-2">{daily.map((d) => <div key={d.date} className="flex flex-1 flex-col items-center gap-1"><div className="w-full rounded-t bg-blue-500" style={{ height: `${(d.costUsd / maxCost) * 100}%` }} /><span className="text-[10px] text-ds-muted">{d.date.slice(5)}</span></div>)}</div></div><div><h4 className="mb-2 text-sm font-semibold">Daily Tokens</h4><div className="flex h-40 items-end gap-2">{daily.map((d) => <div key={d.date} className="flex flex-1 flex-col items-center gap-1"><div className="w-full rounded-t bg-purple-500" style={{ height: `${((d.promptTokens + d.completionTokens) / maxTokens) * 100}%` }} /><span className="text-[10px] text-ds-muted">{d.date.slice(5)}</span></div>)}</div></div><table className="w-full text-sm"><thead><tr className="text-left text-ds-muted"><th>Date</th><th>Cost</th><th>Tokens</th><th>Calls</th></tr></thead><tbody>{daily.map((d) => <tr key={d.date}><td>{d.date}</td><td>${d.costUsd.toFixed(4)}</td><td>{(d.promptTokens + d.completionTokens).toLocaleString()}</td><td>{d.calls}</td></tr>)}</tbody></table></div>;
+}
