@@ -5,7 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && prisma migrate deploy && next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@prisma/client": "latest",
@@ -32,6 +37,10 @@
     "@types/react-dom": "latest",
     "tailwindcss": "latest",
     "tailwindcss-animate": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vitest": "latest",
+    "@vitest/coverage-v8": "latest",
+    "@playwright/test": "latest",
+    "msw": "latest"
   }
 }
