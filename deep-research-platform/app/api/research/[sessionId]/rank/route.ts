@@ -57,7 +57,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
         }
         ranked.sort((a,b)=>b.scores.final-a.scores.final).forEach((r,idx)=>{r.rank=idx+1;});
         const top = ranked.slice(0, DEFAULT_RANKING_CONFIG.topN);
-        await prisma.researchSession.update({ where: { id: sessionId }, data: { rankedSources: top, status: "verifying" } });
+        await prisma.researchSession.update({ where: { id: sessionId }, data: { rankedSources: top as unknown as import("@prisma/client").Prisma.InputJsonValue, status: "verifying" } });
         controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "done", ranked: top })}\n\n`));
       } catch {
         controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "error", error: "Ranking failed" })}\n\n`));

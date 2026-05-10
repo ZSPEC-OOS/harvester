@@ -55,5 +55,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ses
     default: return NextResponse.json({ error: "Unsupported format" }, { status: 400 });
   }
 
-  return new NextResponse(data, { headers: { "Content-Type": mime, "Content-Disposition": `attachment; filename=\"${base}${suffix}\"` } });
+  const responseBody = typeof data === "string" ? data : new Blob([Uint8Array.from(data)], { type: mime });
+  return new NextResponse(responseBody, { headers: { "Content-Type": mime, "Content-Disposition": `attachment; filename=\"${base}${suffix}\"` } });
 }

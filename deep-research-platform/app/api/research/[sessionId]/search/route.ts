@@ -62,7 +62,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
           await sleep(500);
         }
 
-        await prisma.researchSession.update({ where: { id: sessionId }, data: { candidateSources: unique, status: "ranking" } });
+        await prisma.researchSession.update({ where: { id: sessionId }, data: { candidateSources: unique as unknown as import("@prisma/client").Prisma.InputJsonValue, status: "ranking" } });
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", total: unique.length, counts: summarize(unique) })}\n\n`));
       } catch {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: "Search failed" })}\n\n`));
