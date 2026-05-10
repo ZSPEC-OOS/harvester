@@ -30,6 +30,16 @@ Requirements:
 - Do not fabricate citations or DOIs.`;
 
 export const SYNTHESIS_USER_PROMPT_TEMPLATE = `Topic: {{topic}}
-Write a final report from ranked and verified sources.
-Use citation style {{citationStyle}}.
-`;
+Depth: {{depthLevel}}
+Citation style: {{citationStyle}}
+
+Research questions to address:
+{{questions}}
+
+Expected report sections:
+{{sections}}
+
+Verified and ranked sources (use these for citations):
+{{sources}}
+
+Write a comprehensive final report following the system instructions above.`;
