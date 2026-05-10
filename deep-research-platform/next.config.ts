@@ -1,10 +1,6 @@
-import path from "path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Explicitly root file tracing to this directory so Next.js doesn't get
-  // confused by the root-level lockfile from the archived Vite prototype.
-  outputFileTracingRoot: path.join(__dirname),
   reactStrictMode: true,
   images: { formats: ["image/avif", "image/webp"] },
   experimental: { serverActions: { bodySizeLimit: "2mb" } },
