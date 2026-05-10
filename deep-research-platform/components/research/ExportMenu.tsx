@@ -1,5 +1,6 @@
 "use client";
 import { useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { FileCode2, FileJson, FileSpreadsheet, FileText, FileType2, BookMarked, ChevronDown } from "lucide-react";
 import type { ExportFormat } from "@/server/export/types";
 
@@ -34,6 +35,9 @@ export function ExportMenu({ sessionId }: { sessionId: string | null }) {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      toast.success(`Exported ${format.toUpperCase()} successfully.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Export failed");
     } finally {
       setLoading(null);
       setOpen(false);
