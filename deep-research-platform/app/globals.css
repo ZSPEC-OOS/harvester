@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 3%;
+    --foreground: 230 75% 98%;
+    --card: 222 47% 7%;
+    --card-foreground: 230 75% 98%;
+    --popover: 222 47% 7%;
+    --popover-foreground: 230 75% 98%;
+    --primary: 220 70% 48%;
+    --primary-foreground: 230 75% 98%;
+    --secondary: 222 30% 12%;
+    --secondary-foreground: 230 75% 98%;
+    --muted: 222 20% 20%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 168 65% 45%;
+    --accent-foreground: 222 47% 3%;
+    --destructive: 0 70% 65%;
+    --destructive-foreground: 230 75% 98%;
+    --border: 215 20% 55% / 0.14;
+    --input: 215 20% 55% / 0.14;
+    --ring: 220 70% 48%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-ds-bg text-ds-text antialiased;
+  }
+}
+
+@layer components {
+  .glass {
+    background: rgba(11, 17, 32, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(120, 140, 180, 0.14);
+  }
+
+  .input-recessed {
+    background: rgba(8, 18, 38, 0.6);
+    border: 1px solid rgba(120, 140, 180, 0.14);
+    color: #f3f6fd;
+  }
+
+  .input-recessed:focus {
+    outline: none;
+    border-color: rgba(33, 85, 214, 0.5);
+    box-shadow: 0 0 0 3px rgba(33, 85, 214, 0.1);
+  }
+
+  .input-recessed::placeholder {
+    color: #475569;
+  }
+}
