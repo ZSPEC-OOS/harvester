@@ -31,7 +31,12 @@ export interface CandidateSource {
   doi: string | null;
   url: string;
   sourceType: "journal" | "preprint" | "web" | "book" | "report";
+  abstract?: string | null;
+  rank?: number;
+  rationale?: string;
+  scores?: { relevance: number; authority: number; recency: number; evidence: number; final: number };
 }
+
 
 export interface ResearchLogEntry {
   id: string;

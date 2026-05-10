@@ -15,5 +15,6 @@ export function toCandidateSource(raw: RawSearchResult): CandidateSource | null 
     doi: raw.doi?.trim().replace(/^https?:\/\/doi.org\//i, "") ?? null,
     url,
     sourceType: raw.sourceType ?? "web",
+    abstract: raw.abstract ?? null,
   };
 }
