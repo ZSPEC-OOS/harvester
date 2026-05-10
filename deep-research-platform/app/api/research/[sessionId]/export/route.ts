@@ -23,6 +23,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ses
   const session = await prisma.researchSession.findFirst({ where: { id: sessionId, userId } });
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
 
+  const exportableStatuses = new Set(["complete", "synthesizing", "verifying", "ranking"]);
+  if (!exportableStatuses.has(session.status)) return NextResponse.json({ error: "Session is not ready for export" }, { status: 409 });
+
   const exportSession: ExportSession = {
     id: session.id,
     topic: session.topic,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { SessionList } from "@/components/workspace/SessionList";
 import { ActionCard } from "../cards/ActionCard";
 import { ActiveSourcesCard } from "../cards/ActiveSourcesCard";
@@ -15,6 +16,7 @@ import { ConsoleLog } from "../console/ConsoleLog";
 import { CostMeter } from "@/components/sidebar/CostMeter";
 import type { ApiConfig, CandidateSource, ResearchLogEntry, SearchConfig } from "@/types/research";
 import type { VerifiedCitation } from "@/lib/ranking/types";
+import type { SSEEvent } from "@/types/sse";
 
 export function ResearchConsole() {
   const year = new Date().getFullYear();
@@ -40,7 +42,7 @@ export function ResearchConsole() {
   }, []);
 
   const log = (phase: ResearchLogEntry["phase"], message: string) => setLogs((p) => [...p, { id: crypto.randomUUID(), timestamp: new Date().toLocaleTimeString(), phase, message }]);
-  const streamSse = async (url: string, onData: (payload: any) => Promise<void> | void) => { const res = await fetch(url, { method: "POST", signal: controllerRef.current?.signal }); if (!res.body) throw new Error("No response stream"); const r = res.body.getReader(); const d = new TextDecoder(); let b = ""; while (true) { const { value, done } = await r.read(); if (done) break; b += d.decode(value, { stream: true }); const events = b.split("\n\n"); b = events.pop() || ""; for (const e of events) { if (!e.startsWith("data: ")) continue; await onData(JSON.parse(e.slice(6))); } } };
+  const streamSse = async (url: string, onData: (payload: SSEEvent) => Promise<void> | void) => { const res = await fetch(url, { method: "POST", signal: controllerRef.current?.signal }); if (!res.body) throw new Error("No response stream"); const r = res.body.getReader(); const d = new TextDecoder(); let b = ""; while (true) { const { value, done } = await r.read(); if (done) break; b += d.decode(value, { stream: true }); const events = b.split("\n\n"); b = events.pop() || ""; for (const e of events) { if (!e.startsWith("data: ")) continue; await onData(JSON.parse(e.slice(6)) as SSEEvent); } } };
 
   const handleRun = async () => {
     if (!searchConfig.topic.trim()) return;
@@ -54,8 +56,9 @@ export function ResearchConsole() {
       log("synthesis", "Auto-ranking sources..."); await streamSse(`/api/research/${sid}/rank`, (p) => { if (p.type === "done") setSources(p.ranked); if (p.type === "error") throw new Error(p.error); });
       log("synthesis", "Verifying citations..."); await streamSse(`/api/research/${sid}/verify`, (p) => { if (p.type === "verified") setCitations((prev) => [...prev, p.item]); if (p.type === "error") throw new Error(p.error); });
       log("synthesis", "Generating research report..."); await streamSse(`/api/research/${sid}/synthesize`, (p) => { if (p.type === "token") setReport((r) => r + p.token); if (p.type === "error") throw new Error(p.error); });
-    } catch (e) { if ((e as Error).name !== "AbortError") { setError((e as Error).message); log("error", (e as Error).message); } } finally { setIsRunning(false); }
+    toast.success("Research completed.");
+    } catch (e) { if ((e as Error).name !== "AbortError") { setError((e as Error).message); log("error", (e as Error).message); toast.error((e as Error).message); } } finally { setIsRunning(false); }
   };
 
-  return <div className="grid gap-6 lg:grid-cols-4"><div className="space-y-4 lg:col-span-1"><SearchConfigCard config={searchConfig} onChange={setSearchConfig} projects={projects} /><ApiConfigCard config={apiConfig} onChange={setApiConfig} /><ActionCard onRun={handleRun} onStop={() => controllerRef.current?.abort()} sessionId={sessionId} estimatedPapers={Math.max(25, searchConfig.searchDepth * 2)} isRunning={isRunning} disableRun={!searchConfig.topic.trim()} /><ActiveSourcesCard counts={counts} /></div><div className="space-y-4 lg:col-span-2">{error && <ErrorBox message={error} />}<ConsoleLog entries={logs} /><OutputCard output={output} isLoading={isRunning} /><ReportViewer report={report} isStreaming={isRunning} /><CitationPanel citations={citations} citationStyle={searchConfig.citationStyle as "apa" | "mla"} /><ReferenceResultsCard sources={sources} /></div><div className="lg:col-span-1 space-y-4">{userId && <CostMeter userId={userId} />}<div><h3 className="mb-2 text-sm font-semibold">Recent Sessions</h3>{userId ? <SessionList userId={userId} limit={10} /> : <p className="text-sm text-ds-muted">Initializing user...</p>}</div></div></div>;
+  return <div className="grid gap-6 lg:grid-cols-4"><div className="space-y-4 lg:col-span-1"><SearchConfigCard config={searchConfig} onChange={setSearchConfig} onRun={handleRun} projects={projects} /><ApiConfigCard config={apiConfig} onChange={setApiConfig} /><ActionCard onRun={handleRun} onStop={() => { if (confirm("Stop the current research?")) controllerRef.current?.abort(); }} sessionId={sessionId} estimatedPapers={Math.max(25, searchConfig.searchDepth * 2)} isRunning={isRunning} disableRun={!searchConfig.topic.trim()} /><ActiveSourcesCard counts={counts} /></div><div className="space-y-4 lg:col-span-2">{error && <ErrorBox message={error} />}<ConsoleLog entries={logs} /><OutputCard output={output} isLoading={isRunning} /><ReportViewer report={report} isStreaming={isRunning} /><CitationPanel citations={citations} citationStyle={searchConfig.citationStyle as "apa" | "mla"} /><ReferenceResultsCard sources={sources} /></div><div className="lg:col-span-1 space-y-4">{userId && <CostMeter userId={userId} />}<div><h3 className="mb-2 text-sm font-semibold">Recent Sessions</h3>{userId ? <SessionList userId={userId} limit={10} /> : <p className="text-sm text-ds-muted">Initializing user...</p>}</div></div></div>;
 }

@@ -21,7 +21,15 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
   }
 
   const systemPrompt = PLANNER_SYSTEM_PROMPT;
-  const userPrompt = applyTemplate(PLANNER_USER_PROMPT_TEMPLATE, session as unknown as Record<string, string | number | undefined | null>);
+  const promptValues: Record<string, string | number | undefined | null> = {
+    topic: session.topic,
+    citationStyle: session.citationStyle,
+    depthLevel: session.depthLevel,
+    dateRangeStart: session.dateRangeStart,
+    dateRangeEnd: session.dateRangeEnd,
+    sourceCount: session.sourceCount,
+  };
+  const userPrompt = applyTemplate(PLANNER_USER_PROMPT_TEMPLATE, promptValues);
 
   const provider = await getProviderForUser(session.userId);
 

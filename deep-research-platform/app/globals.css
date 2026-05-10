@@ -58,3 +58,12 @@
     color: #475569;
   }
 }
+
+
+::selection { background: rgba(45, 212, 191, 0.28); color: #f8fafc; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.5); border-radius: 999px; }
+::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); }
+input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus { -webkit-text-fill-color: #f3f6fd; transition: background-color 5000s ease-in-out 0s; }
+:focus-visible { outline: 2px solid rgba(56, 189, 248, 0.8); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } }

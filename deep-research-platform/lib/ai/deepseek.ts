@@ -1,3 +1,4 @@
+import { z } from "zod";
 import OpenAI from "openai";
 import { AIProvider } from "./providers";
 
@@ -43,5 +44,14 @@ export class DeepSeekProvider implements AIProvider {
   async generateObject<T>(prompt: string, system?: string): Promise<T> {
     const text = await this.generateText(prompt, system);
     return JSON.parse(text) as T;
+  }
+
+  async generateObjectValidated<T>(prompt: string, schema: z.ZodSchema<T>, system?: string): Promise<T> {
+    const text = await this.generateText(prompt, system);
+    const jsonText = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
+    const parsed = JSON.parse(jsonText);
+    const validated = schema.safeParse(parsed);
+    if (!validated.success) throw new Error("Model output failed schema validation");
+    return validated.data;
   }
 }
