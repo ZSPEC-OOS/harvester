@@ -73,3 +73,23 @@ select.input-recessed option {
   text-transform: uppercase;
   color: #3D5070;
 }
+
+
+/* Readability boost: keep dark theme but increase text contrast */
+body {
+  color: #F2F6FF;
+}
+
+.input-recessed::placeholder {
+  color: #7C8EAF;
+}
+
+.section-label {
+  color: #6D82A8;
+}
+
+/* Lift common muted Tailwind text shades used across cards */
+:where(.text-slate-500) { color: rgb(134 160 201) !important; }
+:where(.text-slate-400) { color: rgb(162 185 222) !important; }
+:where(.text-slate-300) { color: rgb(204 220 246) !important; }
+:where(.text-gray-400)  { color: rgb(170 188 220) !important; }
