@@ -78,9 +78,10 @@ export function TopBar() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ apiKey: apiConfig.apiKey, baseUrl: apiConfig.baseUrl, modelId: apiConfig.modelId }),
       });
-      setApiStatus(r.ok ? "Connected ✓" : "Connection failed ✗");
+      const data = await r.json().catch(() => ({}));
+      setApiStatus(r.ok ? "Connected ✓" : `Failed: ${data.error ?? "unknown error"}`);
     } catch {
-      setApiStatus("Connection failed ✗");
+      setApiStatus("Failed: network error");
     } finally {
       setTesting(false);
     }
@@ -248,7 +249,7 @@ export function TopBar() {
                 </button>
               </div>
               {apiStatus && (
-                <p className={`text-xs ${apiStatus.includes("✓") ? "text-emerald-400" : "text-red-400"}`}>
+                <p className={`break-words text-xs ${apiStatus.includes("✓") ? "text-emerald-400" : "text-red-400"}`}>
                   {apiStatus}
                 </p>
               )}
