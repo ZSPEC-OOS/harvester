@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "next dev",
-    "build": "./node_modules/.bin/prisma generate && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
