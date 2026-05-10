@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ses
     citationStyle: session.citationStyle,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
-    finalReport: session.finalReport,
+    finalReport: session.finalReport ?? null,
     plan: session.plan,
     candidateSources: session.candidateSources,
     rankedSources: session.rankedSources,
