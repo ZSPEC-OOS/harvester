@@ -1,4 +1,4 @@
-import { prisma } from "./db";
+import { randomUUID } from "crypto";
 
 const STORAGE_KEY = "ds_user_id";
 
@@ -13,8 +13,5 @@ export function setUserIdInClient(id: string): void {
 }
 
 export async function createAnonymousUser(): Promise<string> {
-  const user = await prisma.user.create({
-    data: {},
-  });
-  return user.id;
+  return randomUUID();
 }
