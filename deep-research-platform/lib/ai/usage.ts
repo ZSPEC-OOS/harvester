@@ -1,7 +1,4 @@
-import { prisma } from "@/lib/db";
-import { estimateCost } from "@/lib/ai/cost";
-
-export async function logUsageEvent(input: {
+export async function logUsageEvent(_input: {
   userId: string;
   sessionId?: string;
   eventType: string;
@@ -12,21 +9,5 @@ export async function logUsageEvent(input: {
   costUsd?: number;
   metadata?: Record<string, unknown>;
 }) {
-  const promptTokens = input.promptTokens ?? 0;
-  const completionTokens = input.completionTokens ?? 0;
-  const computedCost = input.costUsd ?? estimateCost(input.model, promptTokens, completionTokens);
-
-  await prisma.usageEvent.create({
-    data: {
-      userId: input.userId,
-      sessionId: input.sessionId,
-      eventType: input.eventType,
-      provider: input.provider,
-      model: input.model,
-      promptTokens,
-      completionTokens,
-      costUsd: computedCost,
-      metadata: input.metadata as unknown as import("@prisma/client").Prisma.InputJsonValue,
-    },
-  });
+  // no-op: usage logging requires a database
 }

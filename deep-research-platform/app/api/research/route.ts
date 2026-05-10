@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { sessionStore } from "@/lib/local-session-store";
 import { createSessionSchema } from "@/lib/validation";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -15,21 +16,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: rateLimit.headers });
   }
 
-  const session = await prisma.researchSession.create({
-    data: {
-      userId: parsed.data.userId,
-      topic: parsed.data.topic,
-      audience: parsed.data.audience,
-      depthLevel: parsed.data.depthLevel || "standard",
-      citationStyle: parsed.data.citationStyle || "apa",
-      sourceCount: parsed.data.sourceCount || 20,
-      dateRangeStart: parsed.data.dateRangeStart,
-      dateRangeEnd: parsed.data.dateRangeEnd,
-      status: "planning",
-      projectId: parsed.data.projectId || null,
-      domainRestrictions: parsed.data.domainRestrictions || [],
-      excludedSourceTypes: parsed.data.excludedSourceTypes || [],
-    },
+  const session = sessionStore.create({
+    id: randomUUID(),
+    userId: parsed.data.userId,
+    topic: parsed.data.topic,
+    depthLevel: parsed.data.depthLevel || "standard",
+    citationStyle: parsed.data.citationStyle || "apa",
+    sourceCount: parsed.data.sourceCount || 20,
+    dateRangeStart: parsed.data.dateRangeStart,
+    dateRangeEnd: parsed.data.dateRangeEnd,
+    projectId: parsed.data.projectId,
+    apiKey: parsed.data.apiKey,
+    baseUrl: parsed.data.baseUrl,
+    modelId: parsed.data.modelId,
+    status: "planning",
   });
 
   return NextResponse.json({ sessionId: session.id, status: session.status }, { headers: rateLimit.headers });

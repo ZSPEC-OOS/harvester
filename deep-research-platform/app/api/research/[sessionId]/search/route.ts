@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { sessionStore } from "@/lib/local-session-store";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { deduplicateSources } from "@/lib/search/types";
 import { searchCrossRef } from "@/server/search/crossref";
 import { toCandidateSource } from "@/server/search/source-normalizer";
 import { searchSerper } from "@/server/search/web-search";
-import { logUsageEvent } from "@/lib/ai/usage";
-import { SEARCH_COST_PER_QUERY_USD } from "@/lib/ai/cost";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -14,7 +12,7 @@ function sleep(ms: number) {
 
 export async function POST(_req: Request, { params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
-  const session = await prisma.researchSession.findUnique({ where: { id: sessionId } });
+  const session = sessionStore.get(sessionId);
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
 
   const rateLimit = enforceRateLimit(session.userId, "steps");
@@ -37,15 +35,6 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "log", message: `Query ${i + 1}/${queries.length}: ${query}` })}\n\n`));
 
           const [serper, crossref] = await Promise.all([searchSerper(query), searchCrossRef(query)]);
-          await logUsageEvent({
-            userId: session.userId,
-            sessionId,
-            eventType: "search_query",
-            provider: "serper",
-            model: "web-search",
-            costUsd: SEARCH_COST_PER_QUERY_USD,
-            metadata: { query },
-          });
           const normalized = [...serper, ...crossref].map(toCandidateSource).filter(Boolean);
           all.push(...normalized);
 
@@ -62,7 +51,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ sessio
           await sleep(500);
         }
 
-        await prisma.researchSession.update({ where: { id: sessionId }, data: { candidateSources: unique as unknown as import("@prisma/client").Prisma.InputJsonValue, status: "ranking" } });
+        sessionStore.update(sessionId, { candidateSources: unique, status: "ranking" });
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", total: unique.length, counts: summarize(unique) })}\n\n`));
       } catch {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: "Search failed" })}\n\n`));

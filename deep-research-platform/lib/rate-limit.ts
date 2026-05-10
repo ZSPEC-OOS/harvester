@@ -8,8 +8,8 @@ type Bucket = {
 };
 
 const LIMITS: Record<LimitName, number> = {
-  sessions: 5,
-  steps: 3,
+  sessions: 10,
+  steps: 50,
 };
 
 const buckets = new Map<string, Bucket>();

@@ -12,6 +12,9 @@ export const createSessionSchema = z.object({
   projectId: z.string().optional().nullable(),
   domainRestrictions: z.array(z.string()).optional(),
   excludedSourceTypes: z.array(z.string()).optional(),
+  apiKey: z.string().min(1),
+  baseUrl: z.string().url().default("https://api.deepseek.com"),
+  modelId: z.string().default("deepseek-chat"),
 });
 
 export const exportSchema = z.object({
